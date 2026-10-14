@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>硬件监控 v1.0.0 · 作者 wangyuxxx@gmail.com — Intel Xeon E5-2699 v4 · NVIDIA RTX 4090 × 2 · 内存 64 GB · 每秒采样 · 模拟数据</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;box-sizing:border-box}
+:root{--paper:#DCE1D8;--card:#E9ECE3;--ink:#1B2421;--soft:#5E6A64;--rule:#B9C1B6;--heat:#D9482B;--usage:#1F5C52}
+html,body{width:100%;height:100%;overflow:hidden}
+body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Microsoft YaHei",monospace;padding:14px;display:flex;flex-direction:column;gap:22px}
+.top{display:flex;justify-content:space-between;align-items:center;height:24px}
+.title{display:flex;align-items:center;gap:12px;font-size:13px;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--heat);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+.meta{font-size:12px;color:var(--soft);letter-spacing:.06em}
+.grid{flex:1;display:grid;grid-template-columns:1fr .72fr;gap:24px;min-height:0}
+
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:26px 28px 24px;display:flex;flex-direction:column;min-height:0}
+.head{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+.head b{font-weight:500;color:var(--ink);font-size:15px;letter-spacing:.08em}
+.big{display:flex;align-items:flex-start;margin-top:16px;font-family:"Big Shoulders Display",sans-serif;font-weight:800;line-height:.86;height:94px}
+.big .num{font-size:116px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.big .unit{font-size:38px;font-weight:600;margin:9px 0 0 8px}
+.usage .big{color:var(--usage)}
+.temp .big{color:var(--heat)}
+.scale{display:grid;grid-template-columns:repeat(50,1fr);gap:3px;height:14px;margin-top:20px}
+.scale i{background:var(--rule);border-radius:1px}
+.usage .scale i.on{background:var(--usage)}
+.temp .scale i.on{background:var(--heat)}
+.ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--soft);margin-top:7px}
+.chart{position:relative;flex:1;margin-top:16px;min-height:230px;border-top:1px solid var(--rule)}
+.chart svg{position:absolute;left:34px;right:0;top:8px;bottom:22px;width:calc(100% - 34px);height:calc(100% - 30px);overflow:visible}
+.yl{position:absolute;left:0;font-size:10.5px;color:var(--soft);transform:translateY(-50%)}
+.xl{position:absolute;bottom:0;font-size:10.5px;color:var(--soft)}
+.empty{position:absolute;left:34px;right:0;top:calc(50% - 7px);transform:translateY(-50%);text-align:center;font-size:11px;line-height:1.7;color:var(--soft);display:none}
+.chart.nodata .empty{display:block}
+.stats{display:flex;gap:0;margin-top:14px;border-top:1px solid var(--rule);padding-top:14px}
+.stats div{flex:1;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft)}
+.stats b{display:block;margin-top:3px;font-size:17px;letter-spacing:0;color:var(--ink);font-weight:500}
+[hidden]{display:none!important}
+.top{height:30px}
+.top .title{gap:12px}
+.gview{flex:1;min-height:0;display:flex;flex-direction:column;gap:16px}
+.gsum{display:flex;background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:14px 28px;height:68px;flex:none}
+.gsum div{flex:1;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);border-left:1px solid var(--rule);padding-left:20px}
+.gsum div:first-child{border:0;padding-left:0}
+.gsum b{display:block;margin-top:3px;font-size:19px;letter-spacing:0;color:var(--ink);font-weight:500;white-space:nowrap}
+.gsum b small{font-size:12px;color:var(--soft);font-weight:400}
+.ggrid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:16px}
+.gc{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:18px 22px 14px;display:flex;flex-direction:column;min-height:0}
+.gh{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;letter-spacing:.12em;color:var(--soft);text-transform:uppercase}
+.gh b{font-size:15px;font-weight:500;color:var(--ink);letter-spacing:.08em}
+.gm{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:12px}
+.gm label{display:block;font-size:11px;letter-spacing:.1em;color:var(--soft)}
+.gn{display:flex;align-items:flex-start;font-family:"Big Shoulders Display",sans-serif;font-weight:800;line-height:.86;height:50px;margin-top:8px;font-variant-numeric:tabular-nums}
+.gn span{font-size:56px}
+.gn u{text-decoration:none;font-size:20px;font-weight:600;margin:4px 0 0 4px}
+.cuda .gn{color:var(--usage)}.vram .gn{color:var(--ink)}.gtemp .gn{color:var(--heat)}
+.bar{height:6px;background:var(--rule);border-radius:1px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;transition:width .6s}
+.cuda .bar i{background:var(--usage)}.vram .bar i{background:var(--ink)}.gtemp .bar i{background:var(--heat)}
+.sub{font-size:10.5px;color:var(--soft);margin-top:5px;white-space:nowrap}
+.gchart{position:relative;flex:1;min-height:0;margin-top:12px;border-top:1px solid var(--rule)}
+.gchart svg{position:absolute;left:0;top:8px;width:100%;height:calc(100% - 24px)}
+.lg{position:absolute;left:0;right:0;bottom:0;display:flex;gap:16px;font-size:10.5px;color:var(--soft)}
+.lg i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px}
+.lg span:last-child{margin-left:auto}
+.dash{flex:1;min-height:0;display:grid;grid-template-columns:288px minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:20px}
+.cpucol{order:-1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.cpucol .panel{flex:1;padding:14px 18px 12px}
+.cpucol .big{margin-top:6px;height:50px}
+.cpucol .big .num{font-size:64px}
+.cpucol .big .unit{font-size:22px;margin-top:4px}
+.cpucol .scale{gap:2px;height:8px;margin-top:8px}
+.cpucol .ticks{display:none}
+.cpucol .chart{margin-top:8px;min-height:30px}
+.cpucol .yl,.cpucol .xl{display:none}
+.cpucol .chart svg{left:0;width:100%;top:6px;bottom:4px;height:calc(100% - 10px)}
+.cpucol .stats{margin-top:8px;padding-top:8px}
+.cpucol .stats b{font-size:14px}
+.cpucol .stats div{font-size:10px;letter-spacing:.08em}
+.cpuhead,.cpuhead b{white-space:nowrap}
+.cpuhead b{display:flex;align-items:center;gap:10px;font-size:15px}
+.cpuchip{display:inline-flex;align-items:center;gap:6px;background:var(--usage);color:var(--card);border-radius:4px;padding:4px 9px 4px 7px;font-size:14px;font-weight:500;letter-spacing:.1em;line-height:1}
+.mem .big{color:var(--ink)}
+.mem .scale i.on{background:var(--ink)}
+.cpucol .empty{left:0;font-size:10px;line-height:1.5}
+.gsum{padding:12px 22px;height:62px}
+.gsum div{padding-left:14px}
+.gsum b{font-size:17px}
+.gc{padding:16px 16px 12px}
+.gh{font-size:10px;letter-spacing:.06em}
+.gm{gap:12px;margin-top:14px}
+.gm label{font-size:10.5px;letter-spacing:.04em}
+.gn{height:44px}.gn span{font-size:50px}.gn u{font-size:17px}
+.lg{font-size:10px;gap:10px}
+.gempty{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;line-height:1.8;color:var(--soft);background:var(--card);border:1px solid var(--rule);border-radius:6px}
+.hit{cursor:pointer;position:relative}
+.hit:hover{border-color:var(--soft);background:#F1F3EC;transform:translateY(-2px);box-shadow:0 0 0 1px var(--soft) inset,0 6px 16px rgba(27,36,33,.14)}
+.hit:focus-visible{outline:2px solid var(--usage);outline-offset:2px}
+.hit:active{transform:translateY(0);box-shadow:0 0 0 1px var(--ink) inset}
+.hit{transition:border-color .15s,box-shadow .15s,background .15s,transform .15s}
+.cpucol .head>span:last-child{display:none}
+.cpucol .head::after,.gh::after{content:"前10进程  ›";font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
+.cpucol .head::after{align-self:center}
+.gh{flex-wrap:wrap;align-items:center;row-gap:3px}
+.gh b{flex:1}
+.gh::after{order:2}
+.gh span{order:3;flex-basis:100%;white-space:nowrap}
+.gh b::after{content:none}
+.gh b{display:flex;align-items:center;gap:8px}
+.gh b .gpuchip{order:0;flex:none;flex-basis:auto;font-size:12px;padding:3px 8px 3px 6px;gap:5px;letter-spacing:.06em}
+.hit:hover .gh::after,.hit:focus-visible .gh::after,.hit:hover .head::after,.hit:focus-visible .head::after{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.gm{margin-top:10px}
+.pm{position:fixed;inset:0;background:rgba(27,36,33,.5);display:flex;align-items:center;justify-content:center;z-index:10}
+.pd{width:600px;background:var(--card);border:1px solid var(--ink);border-radius:6px;padding:22px 26px 18px;box-shadow:0 20px 50px rgba(27,36,33,.35)}
+.ph{display:flex;align-items:center;gap:12px}
+.ph .cpuchip{font-size:14px}
+.ph h2{font:500 16px "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em}
+.ph .pn{margin-left:auto;font-size:11px;letter-spacing:.1em;color:var(--soft)}
+.px{font:500 18px/1 "IBM Plex Mono",monospace;width:28px;height:28px;border:1px solid var(--rule);border-radius:4px;background:none;color:var(--ink);cursor:pointer}
+.px:hover{background:var(--ink);color:var(--card)}
+.px:focus-visible{outline:2px solid var(--usage);outline-offset:1px}
+.pt{width:100%;border-collapse:collapse;margin-top:14px;font-size:12.5px}
+.pt th{font-weight:400;font-size:10.5px;letter-spacing:.1em;color:var(--soft);text-align:left;padding:0 0 7px;border-bottom:1px solid var(--ink)}
+.pt td{padding:0;height:34px;border-bottom:1px solid var(--rule);vertical-align:middle}
+.pt .nm{white-space:nowrap}
+.pt .r{width:30px;color:var(--soft);font-size:11px}
+.pt .id{width:68px;color:var(--soft)}
+.pt .ex{width:78px;color:var(--soft);text-align:right;padding-right:14px}
+.pt .vl{width:80px;text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.pt .bw{width:110px;padding:0 12px}
+.pt .bw div{height:6px;background:var(--rule);border-radius:1px;overflow:hidden}
+.pt .bw i{display:block;height:100%;background:var(--pc,var(--usage));transition:width .5s}
+.pt th:last-child,.pt th.ex{text-align:right}
+.pt tr:first-child td .nm{font-weight:500}
+.pf{margin-top:12px;font-size:10.5px;color:var(--soft);letter-spacing:.04em}
+
+.chart svg path[fill="none"],.gchart svg path[fill="none"]{stroke-width:1px}
+.gchart svg path[data-k="vl"]{stroke-width:.8px}
+.gview{gap:12px}
+.gsum{height:50px;padding:7px 22px}
+.gsum b{margin-top:1px}
+.ggrid{gap:12px}
+.gc{padding:12px 16px 10px}
+.gm{margin-top:8px}
+.gn{height:38px;margin-top:6px}.gn span{font-size:42px}.gn u{font-size:15px;margin-top:3px}
+.bar{margin-top:7px}
+.gchart{margin-top:8px}
+.iogrid{flex:none;height:112px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ic{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:10px 16px 10px;display:grid;grid-template-columns:176px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:6px 14px;min-height:0}
+.ih{grid-column:1/3;display:flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.08em;color:var(--soft)}
+.ih b{font-size:14px;font-weight:500;color:var(--ink);letter-spacing:.08em}
+.ih small{margin-left:auto;font-size:10px;letter-spacing:.04em;white-space:nowrap}
+.ic .cpuchip{font-size:11px;padding:3px 7px 3px 6px;gap:5px}
+.im{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:end}
+.im label{display:block;font-size:10.5px;letter-spacing:.1em;color:var(--soft)}
+.im .gn{height:34px;margin-top:3px}.im .gn span{font-size:38px}.im .gn u{font-size:11px;margin:3px 0 0 3px;letter-spacing:.02em}
+.im .a .gn{color:var(--usage)}.im .b .gn{color:var(--ink)}
+.ig{position:relative;border-top:1px solid var(--rule);min-height:0}
+.ig svg{position:absolute;left:0;top:6px;width:100%;height:calc(100% - 8px)}
+.im{grid-template-columns:auto auto;justify-content:start;gap:22px}
+.cpucol .panel.usage{flex:1.75}
+.cpucol .panel.usage .cpuhead b{gap:8px;font-size:14px;letter-spacing:.02em}
+.cpucol .panel.usage .cpuhead b .cpuchip{letter-spacing:.06em}
+#tArea{fill-opacity:.06}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px}
+.duo label{display:flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.1em;color:var(--soft)}
+.duo label i{width:8px;height:8px;border-radius:50%;background:var(--usage)}
+.duo .temp label i{background:var(--heat)}
+.duo .big{margin-top:6px}
+.duo .scale{grid-template-columns:repeat(25,1fr);gap:2px}
+.cpucol .panel.usage .chart{margin-top:12px}
+.clg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:10px;color:var(--soft);margin-top:6px;white-space:nowrap}
+.clg i{display:inline-block;width:12px;height:2px;vertical-align:middle;margin-right:5px}
+.clg span:last-child{margin-left:auto}
+.stats.s4{display:grid;grid-template-columns:1fr 1fr;gap:8px 0}
+
+.ih::after{content:"前10进程  ›";flex:none;font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.04em;white-space:nowrap;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 9px 5px 10px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
+.ih small{margin-left:auto;letter-spacing:0}
+.dcap{margin-left:auto;display:flex;flex-direction:column;gap:3px;font-size:10px;line-height:11px;letter-spacing:0;white-space:nowrap;color:var(--soft)}
+.ih .dcap b{font-size:10px;font-weight:600;letter-spacing:0;color:var(--ink)}
+.dcap i{display:block;height:3px;background:var(--rule);border-radius:2px;overflow:hidden}
+.dcap em{display:block;height:100%;background:var(--usage)}
+.ih{gap:7px}
+.ic{position:relative}
+.ih b{white-space:nowrap}
+.ih small{position:absolute;left:206px;top:43px;margin:0;font-size:10px;line-height:12px;color:var(--soft);z-index:1}
+.ig svg{top:17px;height:calc(100% - 19px)}
+.hit:hover .ih::after,.hit:focus-visible .ih::after{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.pt.io .ex,.pt.io .vl{width:104px}
+.pt.io .ex{padding-right:10px}
+.pw{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid var(--rule);white-space:nowrap}
+.pw label{font-size:10.5px;letter-spacing:.1em;color:var(--soft);display:flex;align-items:center;gap:5px}
+.pw label svg{flex:none}
+.pw b{font-family:"Big Shoulders Display",sans-serif;font-weight:800;font-size:26px;line-height:.9;color:var(--ink);font-variant-numeric:tabular-nums;min-width:2.1ch;text-align:right}
+.pw u{text-decoration:none;font-family:"Big Shoulders Display",sans-serif;font-weight:600;font-size:15px;color:var(--ink);margin-left:-3px}
+.pw .bar{flex:1;margin-top:0;height:6px}
+.pw .bar i{background:var(--ink)}
+.pw span{font-size:10.5px;color:var(--soft)}
+.cpucol .pw{margin-top:8px}
+.thr{margin-top:12px;padding-top:8px;border-top:1px solid var(--rule)}
+.thh{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.1em;color:var(--soft)}
+.thb{display:grid;grid-template-columns:repeat(22,1fr);grid-template-rows:repeat(2,1fr);gap:4px 2px;margin-top:6px;height:54px}
+.thb div{position:relative;background:var(--rule);border-radius:1px;overflow:hidden;opacity:.95}
+.thb div::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to top,transparent 0 3px,var(--card) 3px 4px);z-index:2;pointer-events:none}
+.thb i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--usage);transition:height .5s,background .3s}
+.thb i.hot{background:var(--heat)}
+.cpucol .panel.usage .chart{min-height:34px;margin-top:8px}
+.cpucol .panel.usage .thb{height:64px;gap:3px 2px}
+.cpucol .stats.s4{grid-template-columns:repeat(4,auto);justify-content:space-between;gap:0 6px;margin-top:6px;padding-top:6px}
+.cpucol .stats.s4 div{font-size:9px;letter-spacing:0;white-space:nowrap;line-height:1.2}
+.cpucol .stats.s4 b{font-size:12px;margin-top:2px;line-height:1.1}
+.gsum div{padding-left:12px}
+.gsum b{font-size:16px}
+.dash{gap:12px}
+</style></head><body>
+<div class="dash">
+<main class="gview" id="vGpu">
+  <div class="gsum" id="gSum"></div>
+  <div class="ggrid" id="gGrid"></div>
+  <div class="gempty" id="gEmpty" hidden></div>
+  <div class="iogrid" id="ioGrid">
+    <section class="ic" id="iDisk">
+      <div class="ih"><span class="cpuchip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>DISK</span><b>磁盘读写</b><small id="dMax">峰值 -- MB/s</small><span class="dcap" id="dCap" hidden><span id="dCapTx"></span><i><em id="dCapBar" style="width:0"></em></i></span></div>
+      <div class="im"><div class="a"><label>读取</label><div class="gn"><span id="dR">0</span><u>MB/s</u></div></div><div class="b"><label>写入</label><div class="gn"><span id="dW">0</span><u>MB/s</u></div></div></div>
+      <div class="ig"><svg viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/><path id="dRa" fill="#1F5C52" fill-opacity=".13"/><path id="dRl" fill="none" stroke="#1F5C52" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path id="dWl" fill="none" stroke="#1B2421" stroke-width="1.2" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg></div>
+    </section>
+    <section class="ic" id="iNet">
+      <div class="ih"><span class="cpuchip" style="background:var(--heat)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4v16M8 20l-3-3M8 20l3-3M16 20V4M16 4l-3 3M16 4l3 3"/></svg>NET</span><b>网络流量</b><small id="nMax">峰值 -- Mbps</small></div>
+      <div class="im"><div class="a"><label>下载</label><div class="gn"><span id="nD">0</span><u>Mbps</u></div></div><div class="b"><label>上传</label><div class="gn"><span id="nU">0</span><u>Mbps</u></div></div></div>
+      <div class="ig"><svg viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/><path id="nDa" fill="#1F5C52" fill-opacity=".13"/><path id="nDl" fill="none" stroke="#1F5C52" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path id="nUl" fill="none" stroke="#1B2421" stroke-width="1.2" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg></div>
+    </section>
+  </div>
+</main>
+<main class="cpucol" id="vCpu">
+<section class="panel usage">
+  <div class="head cpuhead"><b><span class="cpuchip"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>CPU</span>使用率·温度</b><span>USAGE</span></div>
+  <div class="duo">
+    <div class="u"><label><i></i>使用率</label><div class="big"><span class="num" id="uNum">37</span><span class="unit">%</span></div><div class="scale" id="uScale"></div></div>
+    <div class="temp"><label><i></i>温度</label><div class="big"><span class="num" id="tNum">58</span><span class="unit">°C</span></div><div class="scale" id="tScale"></div></div>
+  </div>
+  <div class="thr" id="thr" role="img" aria-label="各 CPU 线程使用率竖条图">
+    <div class="thh"><span>线程使用率</span><span id="thN">-- 线程</span></div>
+    <div class="thb" id="thBars"></div>
+  </div>
+  <div class="chart">
+    <svg id="uSvg" viewBox="0 0 600 100" preserveAspectRatio="none">
+      <line x1="0" y1="50" x2="600" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+      <path id="uArea" fill="#1F5C52" fill-opacity=".14"/>
+      <line x1="0" y1="19" x2="600" y2="19" stroke="#D9482B" stroke-opacity=".5" stroke-dasharray="2 4" vector-effect="non-scaling-stroke"/>
+      <path id="tArea" fill="#D9482B" fill-opacity=".1"/>
+      <path id="uLine" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path id="tLine" fill="none" stroke="#D9482B" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    </svg>
+  </div>
+  <div class="clg"><span><i style="background:#1F5C52"></i>使用率 0–100%</span><span><i style="background:#D9482B"></i><em id="tLg" style="font-style:normal">温度 30–110°C</em></span><span>-60s → 现在</span></div>
+  <div class="pw"><label><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>功耗</label><b id="pNum">--</b><u>W</u><div class="bar"><i id="pBar" style="width:0"></i></div><span id="pMax">/ 253 W</span></div>
+  <div class="stats s4"><div>平均使用率<b id="uAvg">--%</b></div><div>峰值使用率<b id="uMax">--%</b></div><div>平均温度<b id="tAvg">--°C</b></div><div>峰值温度<b id="tMax">--°C</b></div></div>
+</section>
+<section class="panel mem">
+  <div class="head cpuhead"><b><span class="cpuchip" style="background:var(--ink)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 17v3M10 17v3M14 17v3M18 17v3M6 11v2M10 11v2M14 11v2M18 11v2"/></svg>RAM</span>内存使用率</b><span>MEMORY</span></div>
+  <div class="big"><span class="num" id="mNum">--</span><span class="unit">%</span></div>
+  <div class="scale" id="mScale"></div>
+  <div class="chart">
+    <svg viewBox="0 0 600 100" preserveAspectRatio="none">
+      <line x1="0" y1="50" x2="600" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+      <path id="mArea" fill="#1B2421" fill-opacity=".1"/>
+      <path id="mLine" fill="none" stroke="#1B2421" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    </svg>
+  </div>
+  <div class="stats"><div>已用<b id="mUsed">-- GB</b></div><div>可用<b id="mFree">-- GB</b></div><div>总量<b id="mTotal">-- GB</b></div></div>
+</section>
+</main>
+</div>
+<script>
+/* 宿主(Python)每秒调用 window.pushSample(usage, temp, gpus, mem, io, power, threads):
+     usage / temp : CPU 使用率(%) 与温度(°C), null 表示暂无数据
+     mem          : {used(GB), total(GB)}, null 表示暂无数据
+     io           : {dr, dw (磁盘读/写 MB/s), nd, nu (网络下/上行 Mbps)}, null 表示暂无数据
+     gpus         : [{name, total(GB), cuda(%), used(GB), temp(°C), power(W), limit(W)}, ...], 某项为 null 表示暂无数据
+     power        : CPU 封装功耗(W), null 表示暂无数据
+     threads      : 每个逻辑核的使用率(%) 数组 (长度=线程数), null/空 表示暂无数据
+     disk         : {used(GB), total(GB), label("NVMe SSD" 之类)}, null 表示暂无数据
+   地址带 #live 时不跑模拟数据, 直接等待宿主推送; 单独用浏览器打开则仍是模拟数据。 */
+(function(){
+  var N=60,live=location.hash==='#live',got=false;
+  function $(id){return document.getElementById(id)}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+  function push(a,v){a.push(v);if(a.length>N)a.shift()}
+  function valid(a){return a.filter(function(v){return v!=null})}
+  function fmt(v,s){return v==null?'--'+s:Math.round(v)+s}
+  function avg(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:null}
+  function mx(a){return a.length?Math.max.apply(null,a):null}
+  function mn(a){return a.length?Math.min.apply(null,a):null}
+  function runs(arr,W,lo,hi){
+    var off=N-arr.length,rs=[],r=[];
+    arr.forEach(function(v,i){
+      if(v==null){if(r.length)rs.push(r);r=[];return}
+      r.push([((off+i)/(N-1)*W).toFixed(1),(100-(clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(1)]);
+    });
+    if(r.length)rs.push(r);
+    return rs.filter(function(r){return r.length>1});
+  }
+  function lineD(rs){return rs.map(function(r){return 'M'+r.map(function(q){return q.join(' ')}).join(' L')}).join('')}
+  function areaD(rs){return rs.map(function(r){return 'M'+r.map(function(q){return q.join(' ')}).join(' L')+' L'+r[r.length-1][0]+' 100 L'+r[0][0]+' 100Z'}).join('')}
+
+  /* ---------- CPU ---------- */
+  var u=[],t=[],uv=35,tv=55,cpw=null,cpMax=253,thr=null,thEls=[];
+  function stepCpu(){
+    uv=clamp(uv+(38-uv)*.08+(Math.random()-.5)*12+(Math.random()<.05?25:0),4,98);
+    tv=clamp(tv+(uv/100*50+34-tv)*.12+(Math.random()-.5)*1.4,34,104);
+    cpw=clamp(18+uv*1.75+(Math.random()-.5)*8,15,253);
+    push(u,uv);push(t,tv);
+    if(thr){
+      for(var k=0;k<thr.length;k++)
+        thr[k]=clamp((thr[k]==null?uv:thr[k])+(uv-thr[k])*.3+(Math.random()-.5)*34+(Math.random()<.06?30:0),2,100);
+    }
+  }
+  function mkScale(id,n){var e=$(id);for(var i=0;i<n;i++)e.appendChild(document.createElement('i'))}
+  mkScale('uScale',25);mkScale('tScale',25);mkScale('mScale',50);
+  function lit(id,v,lo,hi){var k=v==null?0:Math.round(clamp((v-lo)/(hi-lo),0,1)*$(id).children.length);[].forEach.call($(id).children,function(e,i){e.className=i<k?'on':''})}
+  function drawCpu(arr,lo,hi,line,area){var rs=runs(arr,600,lo,hi);$(line).setAttribute('d',lineD(rs));$(area).setAttribute('d',areaD(rs))}
+  /* 线程竖条: 列数跟线程数走 (本机 44 线程 -> 22 列 × 2 行, 和设计稿一致) */
+  function buildThreads(n){
+    var box=$('thBars'),cols=Math.max(1,Math.ceil(n/2));
+    box.innerHTML='';box.style.gridTemplateColumns='repeat('+cols+',1fr)';thEls=[];
+    for(var k=0;k<n;k++){
+      var d=document.createElement('div');d.title='线程 '+k;
+      d.appendChild(document.createElement('i'));box.appendChild(d);thEls.push(d.firstChild);
+    }
+    $('thN').textContent=n+' 线程';
+  }
+  function renderThreads(){
+    if(!thr){$('thr').hidden=true;return}
+    $('thr').hidden=false;
+    for(var k=0;k<thr.length;k++){
+      var v=thr[k],bar=thEls[k];if(!bar)continue;
+      bar.style.height=(v==null?0:v)+'%';
+      bar.className=v!=null&&v>80?'hot':'';
+      bar.parentNode.title='线程 '+k+(v==null?' · --':' · '+Math.round(v)+'%');
+    }
+  }
+  function renderCpu(){
+    var uvld=valid(u),tvld=valid(t);
+    $('uNum').textContent=fmt(u[u.length-1],'');
+    $('tNum').textContent=fmt(t[t.length-1],'');
+    lit('uScale',u[u.length-1],0,100);lit('tScale',t[t.length-1],30,110);
+    if(cpw!=null)cpMax=Math.max(cpMax,Math.ceil(cpw/10)*10);
+    $('pNum').textContent=fmt(cpw,'');
+    $('pBar').style.width=(cpw==null?0:clamp(cpw/cpMax*100,0,100))+'%';
+    $('pMax').textContent='/ '+cpMax+' W';
+    drawCpu(u,0,100,'uLine','uArea');drawCpu(t,30,110,'tLine','tArea');
+    $('uAvg').textContent=fmt(avg(uvld),'%');
+    $('uMax').textContent=fmt(mx(uvld),'%');
+    $('tAvg').textContent=fmt(avg(tvld),'°C');
+    $('tMax').textContent=fmt(mx(tvld),'°C');
+    $('tLg').textContent=live&&!tvld.length?'温度 未检测到传感器 (需运行 LibreHardwareMonitor)':'温度 30–110°C';
+    renderThreads();
+  }
+
+  /* ---------- 内存 ---------- */
+  var mm=[],mu=null,mt=null,mockMem=41;
+  function stepMem(){
+    mockMem=clamp(mockMem+(41-mockMem)*.04+(Math.random()-.5)*1.1+(Math.random()<.04?(Math.random()-.4)*6:0),18,60);
+    mt=64;mu=mockMem;push(mm,mu/mt*100);
+  }
+  function renderMem(){
+    var p=mt&&mu!=null?mu/mt*100:null;
+    $('mNum').textContent=fmt(p,'');lit('mScale',p,0,100);
+    var rs=runs(mm,600,0,100);$('mLine').setAttribute('d',lineD(rs));$('mArea').setAttribute('d',areaD(rs));
+    $('mUsed').textContent=mu==null?'-- GB':mu.toFixed(1)+' GB';
+    $('mFree').textContent=mu==null||!mt?'-- GB':(mt-mu).toFixed(1)+' GB';
+    $('mTotal').textContent=mt?Math.round(mt*10)/10+' GB':'-- GB';
+  }
+
+  /* ---------- GPU ---------- */
+  var gs=[];
+  var mock=[{name:'RTX 4090',total:24,tgt:88,vt:.78},{name:'RTX 4090',total:24,tgt:72,vt:.64}];
+  function newGpu(name,total){return {name:name,total:total,c:null,v:null,t:null,p:null,max:null,hc:[],hv:[]}}
+  function buildGpus(){
+    var grid=$('gGrid');grid.innerHTML='';
+    grid.style.gridTemplateColumns=gs.length>1?'1fr 1fr':'1fr';
+    gs.forEach(function(g,i){
+      var s=document.createElement('section');s.className='gc';
+      s.innerHTML='<div class="gh"><b><span class="cpuchip gpuchip"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="17" height="11" rx="1.5"/><circle cx="10.5" cy="11.5" r="3"/><path d="M19 9h3M19 14h3M5 17v3M9 17v3"/></svg>GPU</span>'+i+'</b><span>NVIDIA '+g.name.replace(/^NVIDIA\s+/i,'')+(g.total?' · '+Math.round(g.total*10)/10+' GB':'')+'</span></div>'
+      +'<div class="gm">'
+      +'<div class="cuda"><label>CUDA 使用率</label><div class="gn"><span data-k="c">0</span><u>%</u></div><div class="bar"><i data-k="cb"></i></div><div class="sub">核心负载</div></div>'
+      +'<div class="vram"><label>显存使用率</label><div class="gn"><span data-k="vp">0</span><u>%</u></div><div class="bar"><i data-k="vb"></i></div><div class="sub" data-k="vs"></div></div>'
+      +'<div class="gtemp"><label>温度</label><div class="gn"><span data-k="t">0</span><u>°C</u></div><div class="bar"><i data-k="tb"></i></div><div class="sub">降频线 95°C</div></div>'
+      +'</div>'
+      +'<div class="pw"><label><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>功耗</label><b data-k="pw">--</b><u>W</u><div class="bar"><i data-k="pb"></i></div><span data-k="pm">/ -- W</span></div>'
+      +'<div class="gchart"><svg viewBox="0 0 300 100" preserveAspectRatio="none"><line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>'
+      +'<path data-k="ca" fill="#1F5C52" fill-opacity=".13"/><path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+      +'<path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>'
+      +'<div class="lg"><span><i style="background:#1F5C52"></i>CUDA</span><span><i style="background:#1B2421"></i>显存</span><span>-60s → 现在 · 0–100%</span></div></div>';
+      grid.appendChild(s);g.el=s;
+    });
+  }
+  function q(g,k){return g.el.querySelector('[data-k='+k+']')}
+  function stepGpu(){
+    gs.forEach(function(g,i){
+      var m=mock[i];
+      if(Math.random()<.03)m.tgt=clamp(m.tgt+(Math.random()-.5)*50,8,98);
+      if(g.c==null){g.c=m.tgt;g.v=m.vt*g.total;g.t=36+m.tgt*.4}
+      g.c=clamp(g.c+(m.tgt-g.c)*.15+(Math.random()-.5)*8,2,100);
+      g.v=clamp(g.v+(m.vt*g.total-g.v)*.05+(Math.random()-.5)*.25,.6,g.total);
+      g.t=clamp(g.t+((34+g.c*.5)-g.t)*.1+(Math.random()-.5)*1,32,102);
+      g.max=450;if(g.p==null)g.p=30+m.tgt*3.9;
+      g.p=clamp(g.p+((30+g.c*3.9)-g.p)*.35+(Math.random()-.5)*14,20,g.max);
+      push(g.hc,g.c);push(g.hv,g.v/g.total*100);
+    });
+  }
+  function renderGpu(){
+    var n=gs.length;
+    $('gGrid').hidden=!n;$('gSum').hidden=!n;$('gEmpty').hidden=!!n;
+    if(!n){$('gEmpty').innerHTML=got?'未检测到 NVIDIA 显卡<br>请确认已安装驱动且 nvidia-smi 可用':'等待数据';return}
+    var cs=[],ts=[],used=0,tot=0,hot=null,hi=0,sumP=0,sumMax=0,hasP=false;
+    gs.forEach(function(g,i){
+      var vp=g.v!=null&&g.total?g.v/g.total*100:null;
+      q(g,'c').textContent=fmt(g.c,'');q(g,'cb').style.width=(g.c==null?0:g.c)+'%';
+      q(g,'vp').textContent=fmt(vp,'');q(g,'vb').style.width=(vp==null?0:vp)+'%';
+      q(g,'vs').textContent=g.v==null?'--':g.v.toFixed(1)+' / '+Math.round(g.total*10)/10+' GB';
+      q(g,'t').textContent=fmt(g.t,'');q(g,'tb').style.width=(g.t==null?0:clamp((g.t-30)/80*100,0,100))+'%';
+      q(g,'pw').textContent=fmt(g.p,'');
+      q(g,'pb').style.width=(g.p==null||!g.max?0:clamp(g.p/g.max*100,0,100))+'%';
+      q(g,'pm').textContent='/ '+(g.max?Math.round(g.max):'--')+' W';
+      if(g.p!=null){sumP+=g.p;hasP=true}
+      if(g.max)sumMax+=g.max;
+      var rc=runs(g.hc,300,0,100),rv=runs(g.hv,300,0,100);
+      q(g,'cl').setAttribute('d',lineD(rc));q(g,'ca').setAttribute('d',areaD(rc));q(g,'vl').setAttribute('d',lineD(rv));
+      if(g.c!=null)cs.push(g.c);
+      if(g.v!=null){used+=g.v}
+      tot+=g.total||0;
+      if(g.t!=null&&(hot==null||g.t>hot)){hot=g.t;hi=i}
+    });
+    $('gSum').innerHTML=
+      '<div>GPU 数量<b>'+n+' <small>张在线</small></b></div>'
+      +'<div>平均 CUDA<b>'+(cs.length?Math.round(avg(cs)):'--')+'<small>%</small></b></div>'
+      +'<div>显存合计<b>'+used.toFixed(1)+' <small>/ '+Math.round(tot*10)/10+' GB</small></b></div>'
+      +'<div>总功耗<b>'+(hasP?Math.round(sumP):'--')+' <small>/ '+(sumMax?Math.round(sumMax):'--')+' W</small></b></div>'
+      +'<div>最高温度<b>'+(hot==null?'--':Math.round(hot))+'<small>°C'+(hot==null?'':' · GPU '+hi)+'</small></b></div>';
+  }
+
+  /* ---------- 磁盘 / 网络 ---------- */
+  function mkIo(base,spread,burst,lo,hi){return {v:base,base:base,spread:spread,burst:burst,lo:lo,hi:hi,h:[],last:null}}
+  var io={dr:mkIo(180,60,900,5,3200),dw:mkIo(70,30,500,2,2400),nd:mkIo(240,80,500,1,950),nu:mkIo(38,14,120,.5,400)};
+  function stepIo(){for(var k in io){var x=io[k];
+    x.v=clamp(x.v+(x.base-x.v)*.12+(Math.random()-.5)*x.spread+(Math.random()<.05?Math.random()*x.burst:0),x.lo,x.hi);
+    x.last=x.v;push(x.h,x.v)}}
+  function ioPts(a,m,W){var off=N-a.length;return a.map(function(v,i){return [((off+i)/(N-1)*W).toFixed(1),(100-v/m*92).toFixed(1)]})}
+  function ioStr(p){return p.length>1?'M'+p.map(function(q){return q.join(' ')}).join(' L'):''}
+  function ioDraw(a,b,l1,ar,l2){
+    var m=Math.max(1,mx(a.h.concat(b.h))*1.1),p=ioPts(a.h,m,300);
+    $(l1).setAttribute('d',ioStr(p));
+    $(ar).setAttribute('d',p.length>1?ioStr(p)+' L'+p[p.length-1][0]+' 100 L'+p[0][0]+' 100Z':'');
+    $(l2).setAttribute('d',ioStr(ioPts(b.h,m,300)));
+  }
+  function ioFmt(v){return v==null?'--':v>=100?String(Math.round(v)):v>=1?v.toFixed(1):v.toFixed(2)}
+
+  /* ---------- 磁盘容量 ---------- */
+  var dcap=null;
+  function capUnit(gb){return gb>=1024?'TB':'GB'}   /* 和上面 GB 的口径一致, 都用 1024 进制 */
+  function capVal(gb){var v=capUnit(gb)==='TB'?gb/1024:gb;return v>=100?String(Math.round(v)):v>=10?v.toFixed(1):v.toFixed(2)}
+  function renderDisk(){
+    var el=$('dCap');
+    if(!dcap||!dcap.total){el.hidden=true;return}
+    el.hidden=false;
+    var u=capUnit(dcap.total),free=dcap.total-dcap.used;
+    $('dCapTx').textContent='容量 '+capVal(dcap.used)+' / '+capVal(dcap.total)+' '+u;
+    $('dCapBar').style.width=clamp(dcap.used/dcap.total*100,0,100)+'%';
+    el.title='磁盘容量:已用 '+capVal(dcap.used)+' '+u+',剩余 '+capVal(free)+' '+u
+      +',共 '+capVal(dcap.total)+' '+u+(dcap.label?' ('+dcap.label+')':'');
+  }
+  function renderIo(){
+    $('dR').textContent=ioFmt(io.dr.last);$('dW').textContent=ioFmt(io.dw.last);
+    $('nD').textContent=ioFmt(io.nd.last);$('nU').textContent=ioFmt(io.nu.last);
+    ioDraw(io.dr,io.dw,'dRl','dRa','dWl');ioDraw(io.nd,io.nu,'nDl','nDa','nUl');
+    var dm=mx(io.dr.h.concat(io.dw.h)),nm=mx(io.nd.h.concat(io.nu.h));
+    $('dMax').textContent='峰值 '+ioFmt(dm)+' MB/s';
+    $('nMax').textContent='峰值 '+ioFmt(nm)+' Mbps';
+    renderDisk();
+  }
+
+  /* ---------- 宿主入口 ---------- */
+  window.pushSample=function(usage,temp,list,mem,dio,power,threads,disk){
+    if(!live){live=true;u=[];t=[];gs=[];mm=[];cpw=null;for(var k in io){io[k].h=[];io[k].last=null}}
+    got=true;
+    cpw=power==null?null:power;
+    if(disk&&disk.total)dcap=disk;
+    if(threads&&threads.length){
+      if(!thr||thr.length!==threads.length){thr=threads.slice();buildThreads(thr.length)}
+      else thr=threads.slice();
+    }else if(!threads){thr=null}
+    push(u,usage);push(t,temp);renderCpu();
+    mu=mem?mem.used:null;mt=mem?mem.total:null;push(mm,mu==null||!mt?null:mu/mt*100);renderMem();
+    list=list||[];
+    if(list.length!==gs.length){gs=list.map(function(d){return newGpu(d.name||'GPU',d.total)});buildGpus()}
+    list.forEach(function(d,i){
+      var g=gs[i];g.total=d.total;g.c=d.cuda;g.v=d.used;g.t=d.temp;g.p=d.power==null?null:d.power;g.max=d.limit||null;
+      push(g.hc,d.cuda);push(g.hv,d.cuda==null||d.used==null||!d.total?null:d.used/d.total*100);
+    });
+    renderGpu();
+    for(var k in io){var v=dio?dio[k]:null;io[k].last=v==null?null:v;push(io[k].h,v==null?0:v)}
+    renderIo();
+  };
+
+  if(live){
+    renderCpu();renderMem();renderGpu();renderIo();
+  }else{
+    gs=mock.map(function(m){return newGpu(m.name,m.total)});buildGpus();
+    dcap={used:1430,total:2048,label:'NVMe SSD'};  // 模拟数据 (和画布一致)
+    thr=[];for(var k=0;k<44;k++)thr.push(35);buildThreads(thr.length);
+    for(var i=0;i<N;i++){stepCpu();stepGpu();stepMem();stepIo()}
+    renderCpu();renderMem();renderGpu();renderIo();
+    setInterval(function(){if(!live){stepCpu();stepGpu();stepMem();stepIo();renderCpu();renderMem();renderGpu();renderIo()}},1000);
+  }
+})();
+</script>
+<div class="pm" id="pm" hidden><div class="pd" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+  <div class="ph"><span class="cpuchip" id="pChip"></span><h2 id="pTitle"></h2><span class="pn" id="pSub"></span><button class="px" id="pClose" aria-label="关闭">×</button></div>
+  <table class="pt"><thead id="pHead"></thead><tbody id="pBody"></tbody></table>
+  <div class="pf" id="pFoot"></div>
+</div></div>
+<script>
+/* 点击面板 -> 前10进程。实时模式向宿主取数据 (window.pywebview.api.top(kind, gpuIndex)),
+   单独用浏览器打开时用模拟数据。 */
+(function(){
+  var MOCK={cpu:[['chrome.exe',9],['node.exe',7],['Code.exe',6],['ffmpeg.exe',8],['python.exe',7],['vmmem',6],['MsMpEng.exe',3],['dwm.exe',2.5],['explorer.exe',1.6],['Teams.exe',3.2]],
+    ram:[['chrome.exe',9.5],['vmmem',7.5],['Code.exe',4.2],['python.exe',5.5],['node.exe',2.8],['Teams.exe',1.9],['Slack.exe',1.6],['explorer.exe',.9],['MsMpEng.exe',1.1],['Photoshop.exe',3.1]],
+    gpu:[['python.exe (PyTorch)',9],['ollama.exe',6],['blender.exe',5],['ComfyUI',4.5],['chrome.exe',2],['dwm.exe',.9],['obs64.exe',1.6],['Code.exe',.7],['Premiere Pro.exe',3.2],['explorer.exe',.3]]};
+  var DISK=[['chrome.exe',3,2],['ffmpeg.exe',8,9],['vmmem',5,6],['SearchIndexer.exe',4,1],['MsMpEng.exe',6,.8],['python.exe',9,4],['Code.exe',2,2.5],['System',1.5,3],['OneDrive.exe',2.5,2],['svchost.exe (WU)',3,1.2]];
+  var NET=[['chrome.exe',9,2],['OneDrive.exe',5,6],['Steam.exe',8,.5],['Teams.exe',3,3],['Slack.exe',1.5,1],['python.exe (pip)',3,.8],['Code.exe',1.5,.8],['svchost.exe (WU)',4,.3],['qbittorrent.exe',6,7],['Dropbox.exe',2,3]];
+  var pm=document.getElementById('pm'),cur=null,opener=null,timer=null,busy=false;
+  function $(id){return document.getElementById(id)}
+  function num(id){return parseFloat($(id).textContent)||0}
+  function num2(e){return parseFloat(e.textContent)||0}
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function hasApi(){return !!(window.pywebview&&window.pywebview.api&&window.pywebview.api.top)}
+  function mockRows(c){
+    if(c.t==='disk'||c.t==='net'){
+      var tr=num(c.ids[0]),tw=num(c.ids[1]);
+      return (c.t==='disk'?DISK:NET).map(function(d){return {name:d[0],pid:1000+d[0].length*997%30000,r:d[1]*(.75+Math.random()*.5)*tr/20,w:d[2]*(.75+Math.random()*.5)*tw/12}});
+    }
+    var rows=MOCK[c.t].map(function(d){return {name:d[0],pid:1000+d[0].length*997%30000,v:d[1]*(.75+Math.random()*.5),ex:Math.round(Math.random()*60)}});
+    return rows.sort(function(a,b){return b.v-a.v});
+  }
+  function fetchRows(c){
+    if(hasApi())return window.pywebview.api.top(c.t,c.idx||0);
+    return Promise.resolve(mockRows(c));
+  }
+  function uf(v){return v>=100?Math.round(v)+'':v>=1?v.toFixed(1):v.toFixed(2)}
+  function drawIo(c,rows){
+    var mode=hasApi()?'实时数据':'模拟数据',u=c.unit;
+    rows.forEach(function(x){x.s=x.r+x.w});
+    rows.sort(function(a,b){return b.s-a.s});rows=rows.slice(0,10);
+    var max=rows.length?Math.max(rows[0].s,1e-9):1;
+    $('pHead').innerHTML='<tr><th class="r">#</th><th>进程名称</th><th class="id">PID</th><th></th><th class="ex">'+c.cols[0]+'</th><th>'+c.cols[1]+'</th></tr>';
+    $('pBody').innerHTML=rows.length?rows.map(function(x,i){
+      return '<tr><td class="r">'+(i+1)+'</td><td><span class="nm">'+esc(x.name)+'</span></td><td class="id">'+x.pid+'</td><td class="bw"><div><i style="width:'+(x.s/max*100).toFixed(0)+'%"></i></div></td><td class="ex">'+uf(x.r)+' '+u+'</td><td class="vl">'+uf(x.w)+' '+u+'</td></tr>'}).join('')
+      :'<tr><td colspan="6" style="padding:18px 0;color:var(--soft);text-align:center">暂无进程数据</td></tr>';
+    $('pFoot').textContent='按'+c.cols[0]+'+'+c.cols[1]+'合计降序 · 条形为合计占比 · '+c.cols[0]+' '+$(c.ids[0]).textContent+' '+u+' · '+c.cols[1]+' '+$(c.ids[1]).textContent+' '+u+' · '+mode;
+  }
+  function draw(c,rows){
+    $('pBody').parentNode.classList.toggle('io',c.t==='disk'||c.t==='net');
+    if(c.t==='disk'||c.t==='net'){drawIo(c,rows);return}
+    var gpu=c.t==='gpu',max=rows.length?Math.max(rows[0].v,1e-9):1,foot;
+    var mode=hasApi()?'实时数据':'模拟数据';
+    if(c.t==='cpu')foot='按 CPU 占用降序 · 总使用率 '+Math.round(num('uNum'))+'% · '+mode;
+    else if(c.t==='ram')foot='按内存占用降序 · 已用 '+$('mUsed').textContent+' / '+$('mTotal').textContent+' · '+mode;
+    else{var vs=c.el.querySelector('[data-k=vs]').textContent;foot='按显存占用降序 · 显存 '+vs+' · CUDA '+Math.round(num2(c.el.querySelector('[data-k=c]')))+'% · '+mode}
+    $('pHead').innerHTML='<tr><th class="r">#</th><th>进程名称</th><th class="id">PID</th><th></th>'+(gpu?'<th class="ex">CUDA</th>':'')+'<th>'+c.col+'</th></tr>';
+    $('pBody').innerHTML=rows.length?rows.map(function(x,i){
+      var val=c.t==='cpu'?x.v.toFixed(1)+'%':x.v.toFixed(1)+' GB';
+      return '<tr><td class="r">'+(i+1)+'</td><td><span class="nm">'+esc(x.name)+'</span></td><td class="id">'+x.pid+'</td><td class="bw"><div><i style="width:'+(x.v/max*100).toFixed(0)+'%"></i></div></td>'+(gpu?'<td class="ex">'+Math.round(x.ex||0)+'%</td>':'')+'<td class="vl">'+val+'</td></tr>'}).join('')
+      :'<tr><td colspan="'+(gpu?6:5)+'" style="padding:18px 0;color:var(--soft);text-align:center">暂无进程数据</td></tr>';
+    $('pFoot').textContent=foot;
+  }
+  function refresh(){
+    if(!cur||busy)return;
+    var c=cur;busy=true;
+    fetchRows(c).then(function(rows){if(cur===c)draw(c,rows||[])},function(){}).then(function(){busy=false});
+  }
+  function open(c,el){
+    cur=c;opener=el;
+    var chip=$('pChip');chip.style.background=c.bg;chip.innerHTML=c.chip;
+    $('pTitle').textContent=c.title;$('pSub').textContent='TOP 10 · 每秒刷新';
+    $('pBody').parentNode.style.setProperty('--pc',c.bg);
+    pm.hidden=false;$('pHead').innerHTML='';$('pBody').innerHTML='';$('pFoot').textContent='读取中…';
+    busy=false;refresh();clearInterval(timer);timer=setInterval(refresh,1000);
+    $('pClose').focus();
+  }
+  function close(){pm.hidden=true;cur=null;clearInterval(timer);if(opener)opener.focus()}
+  var G='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 17v3M10 17v3M14 17v3M18 17v3"/></svg>';
+  var GP='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="17" height="11" rx="1.5"/><circle cx="10.5" cy="11.5" r="3"/><path d="M19 9h3M19 14h3M5 17v3M9 17v3"/></svg>';
+  var C='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>';
+  function conf(el){
+    if(el.id==='iDisk')return {t:'disk',title:'磁盘读写最高的 10 个进程',bg:'#1F5C52',chip:'DISK',cols:['读取','写入'],ids:['dR','dW'],unit:'MB/s'};
+    if(el.id==='iNet')return {t:'net',title:'网络流量最高的 10 个进程',bg:'#D9482B',chip:'NET',cols:['下载','上传'],ids:['nD','nU'],unit:'Mbps'};
+    if(el.classList.contains('usage'))return {t:'cpu',title:'CPU 占用最高的 10 个进程',bg:'#1F5C52',chip:C+'CPU',col:'CPU'};
+    if(el.classList.contains('temp'))return {t:'cpu',title:'CPU 占用最高的 10 个进程',bg:'#D9482B',chip:C+'CPU',col:'CPU'};
+    if(el.classList.contains('mem'))return {t:'ram',title:'内存占用最高的 10 个进程',bg:'#1B2421',chip:G+'RAM',col:'内存'};
+    var idx=[].indexOf.call(el.parentNode.children,el);
+    return {t:'gpu',el:el,idx:idx,title:'显存占用最高的 10 个进程',bg:'#1F5C52',chip:GP+'GPU '+idx,col:'显存'};
+  }
+  function trigger(el){open(conf(el),el)}
+  function arm(el){el.classList.add('hit');el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','查看占用最高的10个进程')}
+  [].forEach.call(document.querySelectorAll('.cpucol .panel,.gc,.ic'),arm);
+  new MutationObserver(function(){[].forEach.call(document.querySelectorAll('.gc:not(.hit)'),arm)}).observe($('gGrid'),{childList:true});
+  document.addEventListener('click',function(e){
+    var el=e.target.closest&&e.target.closest('.cpucol .panel,.gc,.ic');
+    if(el&&!pm.contains(e.target))trigger(el);
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&!pm.hidden){close();return}
+    if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('hit')){e.preventDefault();trigger(e.target)}
+  });
+  pm.addEventListener('click',function(e){if(e.target===pm)close()});
+  $('pClose').addEventListener('click',close);
+})();
+</script>
+</body></html>
+

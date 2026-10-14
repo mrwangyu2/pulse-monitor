@@ -1,0 +1,14 @@
+# .cmd 必须是 CRLF —— 用 LF 的话 cmd.exe 会把行尾一起读进命令里,
+# 报出 "'pyinstaller' 不是内部或外部命令" 这种莫名其妙的错。
+*.cmd text eol=crlf
+
+# 其余文本走平台默认
+*.py   text
+*.html text
+*.md   text
+*.json text
+*.spec text
+
+# 图片是二进制
+*.png binary
+*.ico binary

@@ -1,0 +1,15 @@
+# PyInstaller 工作目录和产物
+build/
+dist/
+*.manifest
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 第三方运行时 (LibreHardwareMonitor), 不随源码走 —— 见 README 的"准备 LHM"
+LibreHardwareMonitor/
+
+# 临时测试目录
+_iso/
+_st/
