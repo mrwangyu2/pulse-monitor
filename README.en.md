@@ -15,7 +15,7 @@ rendered by pywebview, and Pulse **lives in the system tray: move the mouse over
 the window pops up, move it away and the window hides** — checking on the machine never means
 switching windows.
 
-![Pulse UI: CPU utilization / temperature / per-thread bars / chart on the left; one column per GPU on the right (CUDA, VRAM, temperature, power); a summary row across the top; disk and network throughput at the bottom; along the very bottom, the taskbar with the tray icon circled in red — hover there and the window pops up](pictures/pulse-ui.png)
+![Pulse UI: CPU utilization / temperature / per-thread bars / chart on the left; one column per GPU on the right (CUDA, VRAM, temperature, power); a summary row across the top; disk and network throughput at the bottom](pictures/pulse-ui.png)
 
 *(The app's interface text is Chinese.)*
 
