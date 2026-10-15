@@ -13,6 +13,10 @@ Pulse 把该看的整合到一屏：CPU、每张显卡、内存、磁盘、网�
 
 ![Pulse 界面：左边是 CPU 使用率 / 温度 / 线程竖条 / 折线图，右边每张显卡一栏（CUDA、显存、温度、功耗），顶部一排汇总，底部是磁盘读写和网络吞吐](pictures/pulse-ui.png)
 
+点任意面板的「前10进程」，看这一项的前 10 个进程（图中是从 GPU 1 打开的）：
+
+![前 10 进程弹窗：按显存占用降序列出 llama-server.exe 18.4 GB、dwm.exe、chrome.exe 等，底部是合计 19.9 / 22 GB、CUDA 92%](pictures/pulse-ui-process.png)
+
 ## 依赖
 
 显卡的状态 Pulse 自己读不到，全靠这两个外部程序：

@@ -19,6 +19,10 @@ switching windows.
 
 *(The app's interface text is Chinese.)*
 
+Click "top 10 processes" on any panel to list that metric's top 10 processes (opened from GPU 1 here):
+
+![Top 10 processes popup: sorted by VRAM, listing llama-server.exe at 18.4 GB, then dwm.exe, chrome.exe and others, with a total of 19.9 / 22 GB and CUDA 92% at the bottom](pictures/pulse-ui-process.png)
+
 ## Dependencies
 
 Pulse can't read GPU state by itself — it relies on two external programs:
