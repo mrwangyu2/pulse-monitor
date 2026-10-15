@@ -1,0 +1,1259 @@
+--- 画布
++++ 本地
+@@ -13,2 +13,2 @@
+-html,body{width:1049px;height:802px;overflow:hidden}
+-body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Microsoft YaHei",monospace;padding:40px;display:flex;flex-direction:column;gap:22px}
++html,body{width:100%;height:100%;overflow:hidden}
++body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Microsoft YaHei",monospace;padding:14px;display:flex;flex-direction:column;gap:22px}
+@@ -38,0 +39,2 @@
++.empty{position:absolute;left:34px;right:0;top:calc(50% - 7px);transform:translateY(-50%);text-align:center;font-size:11px;line-height:1.7;color:var(--soft);display:none}
++.chart.nodata .empty{display:block}
+@@ -45,4 +46,0 @@
+-.tabs{display:flex;gap:4px;margin-left:22px;padding:3px;border:1px solid var(--rule);border-radius:6px;background:var(--card)}
+-.tabs button{font:500 12px "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.12em;color:var(--soft);background:none;border:0;border-radius:4px;padding:3px 14px;cursor:pointer}
+-.tabs button[aria-selected=true]{background:var(--ink);color:var(--card)}
+-.tabs button:focus-visible{outline:2px solid var(--usage);outline-offset:1px}
+@@ -79,9 +77,12 @@
+-.cpucol{order:-1;display:flex;flex-direction:column;gap:16px;min-height:0}
+-.cpucol .panel{flex:1;padding:18px 20px 16px}
+-.cpucol .big{margin-top:10px;height:70px}
+-.cpucol .big .num{font-size:88px}
+-.cpucol .big .unit{font-size:28px;margin-top:6px}
+-.cpucol .scale{gap:2px;height:10px;margin-top:12px}
+-.cpucol .chart{min-height:0;margin-top:12px}
+-.cpucol .stats{margin-top:10px;padding-top:10px}
+-.cpucol .stats b{font-size:15px}
++.cpucol{order:-1;display:flex;flex-direction:column;gap:12px;min-height:0}
++.cpucol .panel{flex:1;padding:14px 18px 12px}
++.cpucol .big{margin-top:6px;height:50px}
++.cpucol .big .num{font-size:64px}
++.cpucol .big .unit{font-size:22px;margin-top:4px}
++.cpucol .scale{gap:2px;height:8px;margin-top:8px}
++.cpucol .ticks{display:none}
++.cpucol .chart{margin-top:8px;min-height:30px}
++.cpucol .yl,.cpucol .xl{display:none}
++.cpucol .chart svg{left:0;width:100%;top:6px;bottom:4px;height:calc(100% - 10px)}
++.cpucol .stats{margin-top:8px;padding-top:8px}
++.cpucol .stats b{font-size:14px}
+@@ -91 +92,4 @@
+-.cpuchip{display:inline-flex;align-items:center;gap:6px;background:var(--usage);color:var(--card);border-radius:4px;padding:4px 9px 4px 7px;font-size:16px;font-weight:500;letter-spacing:.1em;line-height:1}
++.cpuchip{display:inline-flex;align-items:center;gap:6px;background:var(--usage);color:var(--card);border-radius:4px;padding:4px 9px 4px 7px;font-size:14px;font-weight:500;letter-spacing:.1em;line-height:1}
++.mem .big{color:var(--ink)}
++.mem .scale i.on{background:var(--ink)}
++.cpucol .empty{left:0;font-size:10px;line-height:1.5}
+@@ -103,15 +107,3 @@
+-.cpucol{gap:12px}
+-.cpucol .panel{padding:14px 18px 12px}
+-.cpucol .big{margin-top:6px;height:50px}
+-.cpucol .big .num{font-size:64px}
+-.cpucol .big .unit{font-size:22px;margin-top:4px}
+-.cpucol .scale{height:8px;margin-top:8px}
+-.cpucol .ticks{display:none}
+-.cpucol .chart{margin-top:8px;min-height:30px}
+-.cpucol .yl,.cpucol .xl{display:none}
+-.cpucol .chart svg{left:0;width:100%;top:6px;bottom:4px;height:calc(100% - 10px)}
+-.cpucol .stats{margin-top:8px;padding-top:8px}
+-.cpucol .stats b{font-size:14px}
+-.cpuchip{font-size:14px}
+-.hit{cursor:pointer;position:relative;transition:border-color .15s,box-shadow .15s}
+-.hit:hover{border-color:var(--soft);box-shadow:0 0 0 1px var(--soft) inset}
++.gempty{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;line-height:1.8;color:var(--soft);background:var(--card);border:1px solid var(--rule);border-radius:6px}
++.hit{cursor:pointer;position:relative}
++.hit:hover{border-color:var(--soft);background:#F1F3EC;transform:translateY(-2px);box-shadow:0 0 0 1px var(--soft) inset,0 6px 16px rgba(27,36,33,.14)}
+@@ -119 +110,0 @@
+-.hit:hover{background:#F1F3EC;transform:translateY(-2px);box-shadow:0 0 0 1px var(--soft) inset,0 6px 16px rgba(27,36,33,.14)}
+@@ -124,2 +115,2 @@
+-.cpucol .head::after{content:"前10进程  ›";font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
+-.gh b::after{content:none}
++.cpucol .head::after,.gh::after{content:"前10进程  ›";font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
++.cpucol .head::after{align-self:center}
+@@ -128 +119 @@
+-.gh::after{content:"前10进程  ›";order:2;font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
++.gh::after{order:2}
+@@ -130,2 +121 @@
+-.hit:hover .gh::after,.hit:focus-visible .gh::after{background:var(--ink);color:var(--card);border-color:var(--ink)}
+-.gm{margin-top:10px}
++.gh b::after{content:none}
+@@ -134,2 +124,2 @@
+-.cpucol .head::after{align-self:center}
+-.hit:hover .head::after,.hit:focus-visible .head::after{background:var(--ink);color:var(--card);border-color:var(--ink)}
++.hit:hover .gh::after,.hit:focus-visible .gh::after,.hit:hover .head::after,.hit:focus-visible .head::after{background:var(--ink);color:var(--card);border-color:var(--ink)}
++.gm{margin-top:10px}
+@@ -159,2 +148,0 @@
+-.mem .big{color:var(--ink)}
+-.mem .scale i.on{background:var(--ink)}
+@@ -219,4 +206,0 @@
+-.ix{position:absolute;right:0;top:9px;font-size:10px;color:var(--soft);background:var(--card);padding-left:4px}
+-html,body{width:100%;height:100%}
+-body{padding:14px}
+-.dash{gap:12px}
+@@ -231,0 +216,9 @@
++.thr{margin-top:12px;padding-top:8px;border-top:1px solid var(--rule)}
++.thh{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.1em;color:var(--soft)}
++.thb{display:grid;grid-template-columns:repeat(22,1fr);grid-template-rows:repeat(2,1fr);gap:4px 2px;margin-top:6px;height:54px}
++.thb div{position:relative;background:var(--rule);border-radius:1px;overflow:hidden;opacity:.95}
++.thb div::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to top,transparent 0 3px,var(--card) 3px 4px);z-index:2;pointer-events:none}
++.thb i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--usage);transition:height .5s,background .3s}
++.thb i.hot{background:var(--heat)}
++.cpucol .panel.usage .chart{min-height:34px;margin-top:8px}
++.cpucol .panel.usage .thb{height:64px;gap:3px 2px}
+@@ -236,0 +230 @@
++.dash{gap:12px}
+@@ -243,24 +236,0 @@
+-<div>
+-GPU 数量<b>
+-2 <small>
+-张在线</small>
+-</b>
+-</div>
+-<div>
+-平均 CUDA<b>
+-80<small>
+-%</small>
+-</b>
+-</div>
+-<div>
+-显存合计<b>
+-34.1 <small>
+-/ 48 GB</small>
+-</b>
+-</div>
+-<div>
+-最高温度<b>
+-80<small>
+-°C · GPU 0</small>
+-</b>
+-</div>
+@@ -269,326 +239,2 @@
+-<section class="gc">
+-<div class="gh">
+-<b>
+-<span class="cpuchip gpuchip">
+-<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+-<rect x="2" y="6" width="17" height="11" rx="1.5"/>
+-<circle cx="10.5" cy="11.5" r="3"/>
+-<path d="M19 9h3M19 14h3M5 17v3M9 17v3"/>
+-</svg>
+-GPU</span>
+-0</b>
+-<span>
+-NVIDIA RTX 4090 · 24 GB</span>
+-</div>
+-<div class="gm">
+-<div class="cuda">
+-<label>
+-CUDA 使用率</label>
+-<div class="gn">
+-<span data-k="c">
+-88</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="cb" style="width:88%">
+-</i>
+-</div>
+-<div class="sub">
+-核心负载</div>
+-</div>
+-<div class="vram">
+-<label>
+-显存使用率</label>
+-<div class="gn">
+-<span data-k="vp">
+-78</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="vb" style="width:78%">
+-</i>
+-</div>
+-<div class="sub" data-k="vs">
+-18.7 / 24 GB</div>
+-</div>
+-<div class="gtemp">
+-<label>
+-温度</label>
+-<div class="gn">
+-<span data-k="t">
+-80</span>
+-<u>
+-°C</u>
+-</div>
+-<div class="bar">
+-<i data-k="tb" style="width:62%">
+-</i>
+-</div>
+-<div class="sub">
+-降频线 95°C</div>
+-</div>
+-</div>
+-<div class="gchart">
+-<svg viewBox="0 0 300 100" preserveAspectRatio="none">
+-<line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+-<path data-k="ca" fill="#1F5C52" fill-opacity=".13" d="M0 30 L50 22 L100 18 L150 26 L200 14 L250 12 L300 12 L300 100 L0 100Z"/>
+-<path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 30 L50 22 L100 18 L150 26 L200 14 L250 12 L300 12"/>
+-<path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 26 L100 24 L200 23 L300 22"/>
+-</svg>
+-<div class="lg">
+-<span>
+-<i style="background:#1F5C52">
+-</i>
+-CUDA</span>
+-<span>
+-<i style="background:#1B2421">
+-</i>
+-显存</span>
+-<span>
+--60s → 现在 · 0–100%</span>
+-</div>
+-</div>
+-</section>
+-<section class="gc">
+-<div class="gh">
+-<b>
+-<span class="cpuchip gpuchip">
+-<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+-<rect x="2" y="6" width="17" height="11" rx="1.5"/>
+-<circle cx="10.5" cy="11.5" r="3"/>
+-<path d="M19 9h3M19 14h3M5 17v3M9 17v3"/>
+-</svg>
+-GPU</span>
+-1</b>
+-<span>
+-NVIDIA RTX 4090 · 24 GB</span>
+-</div>
+-<div class="gm">
+-<div class="cuda">
+-<label>
+-CUDA 使用率</label>
+-<div class="gn">
+-<span data-k="c">
+-72</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="cb" style="width:72%">
+-</i>
+-</div>
+-<div class="sub">
+-核心负载</div>
+-</div>
+-<div class="vram">
+-<label>
+-显存使用率</label>
+-<div class="gn">
+-<span data-k="vp">
+-64</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="vb" style="width:64%">
+-</i>
+-</div>
+-<div class="sub" data-k="vs">
+-15.4 / 24 GB</div>
+-</div>
+-<div class="gtemp">
+-<label>
+-温度</label>
+-<div class="gn">
+-<span data-k="t">
+-65</span>
+-<u>
+-°C</u>
+-</div>
+-<div class="bar">
+-<i data-k="tb" style="width:44%">
+-</i>
+-</div>
+-<div class="sub">
+-降频线 95°C</div>
+-</div>
+-</div>
+-<div class="gchart">
+-<svg viewBox="0 0 300 100" preserveAspectRatio="none">
+-<line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+-<path data-k="ca" fill="#1F5C52" fill-opacity=".13" d="M0 40 L50 36 L100 30 L150 34 L200 26 L250 30 L300 28 L300 100 L0 100Z"/>
+-<path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 40 L50 36 L100 30 L150 34 L200 26 L250 30 L300 28"/>
+-<path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 38 L100 37 L200 36 L300 36"/>
+-</svg>
+-<div class="lg">
+-<span>
+-<i style="background:#1F5C52">
+-</i>
+-CUDA</span>
+-<span>
+-<i style="background:#1B2421">
+-</i>
+-显存</span>
+-<span>
+--60s → 现在 · 0–100%</span>
+-</div>
+-</div>
+-</section>
+-<section class="gc">
+-<div class="gh">
+-<b>
+-GPU 2</b>
+-<span>
+-NVIDIA RTX 4090 · 24 GB</span>
+-</div>
+-<div class="gm">
+-<div class="cuda">
+-<label>
+-CUDA 使用率</label>
+-<div class="gn">
+-<span data-k="c">
+-18</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="cb" style="width:18%">
+-</i>
+-</div>
+-<div class="sub">
+-核心负载</div>
+-</div>
+-<div class="vram">
+-<label>
+-显存使用率</label>
+-<div class="gn">
+-<span data-k="vp">
+-22</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="vb" style="width:22%">
+-</i>
+-</div>
+-<div class="sub" data-k="vs">
+-5.3 / 24 GB</div>
+-</div>
+-<div class="gtemp">
+-<label>
+-温度</label>
+-<div class="gn">
+-<span data-k="t">
+-43</span>
+-<u>
+-°C</u>
+-</div>
+-<div class="bar">
+-<i data-k="tb" style="width:16%">
+-</i>
+-</div>
+-<div class="sub">
+-降频线 95°C</div>
+-</div>
+-</div>
+-<div class="gchart">
+-<svg viewBox="0 0 300 100" preserveAspectRatio="none">
+-<line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+-<path data-k="ca" fill="#1F5C52" fill-opacity=".13" d="M0 84 L50 80 L100 86 L150 78 L200 84 L250 82 L300 82 L300 100 L0 100Z"/>
+-<path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 84 L50 80 L100 86 L150 78 L200 84 L250 82 L300 82"/>
+-<path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 79 L100 78 L200 78 L300 78"/>
+-</svg>
+-<div class="lg">
+-<span>
+-<i style="background:#1F5C52">
+-</i>
+-CUDA</span>
+-<span>
+-<i style="background:#1B2421">
+-</i>
+-显存</span>
+-<span>
+--60s → 现在 · 0–100%</span>
+-</div>
+-</div>
+-</section>
+-<section class="gc">
+-<div class="gh">
+-<b>
+-GPU 3</b>
+-<span>
+-NVIDIA RTX 4090 · 24 GB</span>
+-</div>
+-<div class="gm">
+-<div class="cuda">
+-<label>
+-CUDA 使用率</label>
+-<div class="gn">
+-<span data-k="c">
+-45</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="cb" style="width:45%">
+-</i>
+-</div>
+-<div class="sub">
+-核心负载</div>
+-</div>
+-<div class="vram">
+-<label>
+-显存使用率</label>
+-<div class="gn">
+-<span data-k="vp">
+-50</span>
+-<u>
+-%</u>
+-</div>
+-<div class="bar">
+-<i data-k="vb" style="width:50%">
+-</i>
+-</div>
+-<div class="sub" data-k="vs">
+-12.0 / 24 GB</div>
+-</div>
+-<div class="gtemp">
+-<label>
+-温度</label>
+-<div class="gn">
+-<span data-k="t">
+-54</span>
+-<u>
+-°C</u>
+-</div>
+-<div class="bar">
+-<i data-k="tb" style="width:30%">
+-</i>
+-</div>
+-<div class="sub">
+-降频线 95°C</div>
+-</div>
+-</div>
+-<div class="gchart">
+-<svg viewBox="0 0 300 100" preserveAspectRatio="none">
+-<line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+-<path data-k="ca" fill="#1F5C52" fill-opacity=".13" d="M0 62 L50 54 L100 58 L150 50 L200 56 L250 52 L300 55 L300 100 L0 100Z"/>
+-<path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 62 L50 54 L100 58 L150 50 L200 56 L250 52 L300 55"/>
+-<path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 51 L100 50 L200 50 L300 50"/>
+-</svg>
+-<div class="lg">
+-<span>
+-<i style="background:#1F5C52">
+-</i>
+-CUDA</span>
+-<span>
+-<i style="background:#1B2421">
+-</i>
+-显存</span>
+-<span>
+--60s → 现在 · 0–100%</span>
+-</div>
+-</div>
+-</section>
++</div>
++<div class="gempty" id="gEmpty" hidden>
+@@ -609,5 +255,3 @@
+-<span class="dcap" title="磁盘容量:已用 1.43 TB,剩余 0.57 TB,共 2 TB (NVMe SSD)">
+-<span>
+-容量 <b>
+-1.43</b>
+-/ 2 TB</span>
++<span class="dcap" id="dCap" hidden>
++<span id="dCapTx">
++</span>
+@@ -615 +259 @@
+-<em style="width:71.5%">
++<em id="dCapBar" style="width:0">
+@@ -746 +390 @@
+-44 线程</span>
++-- 线程</span>
+@@ -751,11 +394,0 @@
+-<style>
+-.thr{margin-top:12px;padding-top:8px;border-top:1px solid var(--rule)}
+-.thh{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.1em;color:var(--soft)}
+-.thb{display:grid;grid-template-columns:repeat(22,1fr);grid-template-rows:repeat(2,1fr);gap:4px 2px;margin-top:6px;height:54px}
+-.thb div{position:relative;background:var(--rule);border-radius:1px;overflow:hidden;opacity:.95}
+-.thb div::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to top,transparent 0 3px,var(--card) 3px 4px);z-index:2;pointer-events:none}
+-.thb i{position:absolute;left:0;right:0;bottom:0;height:0;background:var(--usage);transition:height .5s,background .3s}
+-.thb i.hot{background:var(--heat)}
+-.cpucol .panel.usage .chart{min-height:34px;margin-top:8px}
+-.cpucol .panel.usage .thb{height:64px;gap:3px 2px}
+-</style>
+@@ -780 +413,3 @@
+-温度 30–110°C</span>
++<em id="tLg" style="font-style:normal">
++温度 30–110°C</em>
++</span>
+@@ -791 +426 @@
+-0</b>
++--</b>
+@@ -798 +433 @@
+-<span>
++<span id="pMax">
+@@ -835 +470 @@
+-64</span>
++--</span>
+@@ -858,2 +493,2 @@
+-总量<b>
+-64 GB</b>
++总量<b id="mTotal">
++-- GB</b>
+@@ -865,0 +501,13 @@
++/* 宿主(Python)每秒调用 window.pushSample(usage, temp, gpus, mem, io, power, threads):
++usage / temp : CPU 使用率(%) 与温度(°C), null 表示暂无数据
++mem          : {used(GB), total(GB)}
++, null 表示暂无数据
++io           : {dr, dw (磁盘读/写 MB/s), nd, nu (网络下/上行 Mbps)}
++, null 表示暂无数据
++gpus         : [{name, total(GB), cuda(%), used(GB), temp(°C), power(W), limit(W)}
++, ...], 某项为 null 表示暂无数据
++power        : CPU 封装功耗(W), null 表示暂无数据
++threads      : 每个逻辑核的使用率(%) 数组 (长度=线程数), null/空 表示暂无数据
++disk         : {used(GB), total(GB), label("NVMe SSD" 之类)}
++, null 表示暂无数据
++地址带 #live 时不跑模拟数据, 直接等待宿主推送; 单独用浏览器打开则仍是模拟数据。 */
+@@ -867 +515,2 @@
+-var N=60,u=[],t=[],uv=35,tv=55;
++var N=60,live=location.hash==='#live',got=false;
++function $(id){return document.getElementById(id)}
+@@ -869 +518,30 @@
+-function step(){
++function push(a,v){a.push(v);if(a.length>
++N)a.shift()}
++function valid(a){return a.filter(function(v){return v!=null}
++)}
++function fmt(v,s){return v==null?'--'+s:Math.round(v)+s}
++function avg(a){return a.length?a.reduce(function(x,y){return x+y}
++,0)/a.length:null}
++function mx(a){return a.length?Math.max.apply(null,a):null}
++function mn(a){return a.length?Math.min.apply(null,a):null}
++function runs(arr,W,lo,hi){
++var off=N-arr.length,rs=[],r=[];
++arr.forEach(function(v,i){
++if(v==null){if(r.length)rs.push(r);r=[];return}
++r.push([((off+i)/(N-1)*W).toFixed(1),(100-(clamp(v,lo,hi)-lo)/(hi-lo)*100).toFixed(1)]);
++}
++);
++if(r.length)rs.push(r);
++return rs.filter(function(r){return r.length>
++1}
++);
++}
++function lineD(rs){return rs.map(function(r){return 'M'+r.map(function(q){return q.join(' ')}
++).join(' L')}
++).join('')}
++function areaD(rs){return rs.map(function(r){return 'M'+r.map(function(q){return q.join(' ')}
++).join(' L')+' L'+r[r.length-1][0]+' 100 L'+r[0][0]+' 100Z'}
++).join('')}
++/* ---------- CPU ---------- */
++var u=[],t=[],uv=35,tv=55,cpw=null,cpMax=253,thr=null,thEls=[];
++function stepCpu(){
+@@ -872,13 +550,10 @@
+-u.push(uv);t.push(tv);if(u.length>
+-N){u.shift();t.shift()}
+-}
+-for(var i=0;i<N;i++)step();
+-function mkScale(id,n){var e=document.getElementById(id);for(var i=0;i<n;i++)e.appendChild(document.createElement('i'))}
+-mkScale('uScale',25);mkScale('tScale',25);
+-function draw(arr,lo,hi,line,area){
+-var p=arr.map(function(v,i){return (i/(N-1)*600).toFixed(1)+' '+(100-(v-lo)/(hi-lo)*100).toFixed(1)}
+-);
+-document.getElementById(line).setAttribute('d','M'+p.join(' L'));
+-document.getElementById(area).setAttribute('d','M'+p.join(' L')+' L600 100 L0 100Z');
+-}
+-function lit(id,frac){var k=Math.round(frac*document.getElementById(id).children.length);[].forEach.call(document.getElementById(id).children,function(e,i){e.className=i<k?'on':''}
++cpw=clamp(18+uv*1.75+(Math.random()-.5)*8,15,253);
++push(u,uv);push(t,tv);
++if(thr){
++for(var k=0;k<thr.length;k++)
++thr[k]=clamp((thr[k]==null?uv:thr[k])+(uv-thr[k])*.3+(Math.random()-.5)*34+(Math.random()<.06?30:0),2,100);
++}
++}
++function mkScale(id,n){var e=$(id);for(var i=0;i<n;i++)e.appendChild(document.createElement('i'))}
++mkScale('uScale',25);mkScale('tScale',25);mkScale('mScale',50);
++function lit(id,v,lo,hi){var k=v==null?0:Math.round(clamp((v-lo)/(hi-lo),0,1)*$(id).children.length);[].forEach.call($(id).children,function(e,i){e.className=i<k?'on':''}
+@@ -886,7 +561,19 @@
+-var TN=44,tb=document.getElementById('thBars'),tc=[],tl=[];
+-for(var k=0;k<TN;k++){var d=document.createElement('div');d.title='线程 '+k;d.appendChild(document.createElement('i'));tb.appendChild(d);tc.push(d.firstChild);tl.push(uv)}
+-function thr(){
+-for(var k=0;k<TN;k++){
+-tl[k]=clamp(tl[k]+(uv-tl[k])*.3+(Math.random()-.5)*34+(Math.random()<.06?30:0),2,100);
+-tc[k].style.height=tl[k]+'%';
+-tc[k].className=tl[k]>
++function drawCpu(arr,lo,hi,line,area){var rs=runs(arr,600,lo,hi);$(line).setAttribute('d',lineD(rs));$(area).setAttribute('d',areaD(rs))}
++/* 线程竖条: 列数跟线程数走 (本机 44 线程 ->
++22 列 × 2 行, 和设计稿一致) */
++function buildThreads(n){
++var box=$('thBars'),cols=Math.max(1,Math.ceil(n/2));
++box.innerHTML='';box.style.gridTemplateColumns='repeat('+cols+',1fr)';thEls=[];
++for(var k=0;k<n;k++){
++var d=document.createElement('div');d.title='线程 '+k;
++d.appendChild(document.createElement('i'));box.appendChild(d);thEls.push(d.firstChild);
++}
++$('thN').textContent=n+' 线程';
++}
++function renderThreads(){
++if(!thr){$('thr').hidden=true;return}
++$('thr').hidden=false;
++for(var k=0;k<thr.length;k++){
++var v=thr[k],bar=thEls[k];if(!bar)continue;
++bar.style.height=(v==null?0:v)+'%';
++bar.className=v!=null&&v>
+@@ -894,32 +581,38 @@
+-tc[k].parentNode.title='线程 '+k+' · '+Math.round(tl[k])+'%';
+-}
+-}
+-function avg(a){return a.reduce(function(x,y){return x+y}
+-,0)/a.length}
+-function render(){
+-document.getElementById('uNum').textContent=Math.round(uv);
+-document.getElementById('tNum').textContent=Math.round(tv);
+-lit('uScale',uv/100);lit('tScale',(tv-30)/80);
+-thr();
+-var pw=clamp(18+uv*1.75+(Math.random()-.5)*8,15,253);
+-document.getElementById('pNum').textContent=Math.round(pw);
+-document.getElementById('pBar').style.width=(pw/253*100)+'%';
+-draw(u,0,100,'uLine','uArea');draw(t,30,110,'tLine','tArea');
+-document.getElementById('uAvg').textContent=Math.round(avg(u))+'%';
+-document.getElementById('uMax').textContent=Math.round(Math.max.apply(null,u))+'%';
+-document.getElementById('tAvg').textContent=Math.round(avg(t))+'°C';
+-document.getElementById('tMax').textContent=Math.round(Math.max.apply(null,t))+'°C';
+-}
+-render();
+-setInterval(function(){step();render()}
+-,1000);
+-}
+-)();
+-</script>
+-<script>
+-(function(){
+-var N=60;
+-var gpus=[
+-{name:'RTX 4090',total:24,tgt:88,vt:.78}
+-,
+-{name:'RTX 4090',total:24,tgt:72,vt:.64}
++bar.parentNode.title='线程 '+k+(v==null?' · --':' · '+Math.round(v)+'%');
++}
++}
++function renderCpu(){
++var uvld=valid(u),tvld=valid(t);
++$('uNum').textContent=fmt(u[u.length-1],'');
++$('tNum').textContent=fmt(t[t.length-1],'');
++lit('uScale',u[u.length-1],0,100);lit('tScale',t[t.length-1],30,110);
++if(cpw!=null)cpMax=Math.max(cpMax,Math.ceil(cpw/10)*10);
++$('pNum').textContent=fmt(cpw,'');
++$('pBar').style.width=(cpw==null?0:clamp(cpw/cpMax*100,0,100))+'%';
++$('pMax').textContent='/ '+cpMax+' W';
++drawCpu(u,0,100,'uLine','uArea');drawCpu(t,30,110,'tLine','tArea');
++$('uAvg').textContent=fmt(avg(uvld),'%');
++$('uMax').textContent=fmt(mx(uvld),'%');
++$('tAvg').textContent=fmt(avg(tvld),'°C');
++$('tMax').textContent=fmt(mx(tvld),'°C');
++$('tLg').textContent=live&&!tvld.length?'温度 未检测到传感器 (需运行 LibreHardwareMonitor)':'温度 30–110°C';
++renderThreads();
++}
++/* ---------- 内存 ---------- */
++var mm=[],mu=null,mt=null,mockMem=41;
++function stepMem(){
++mockMem=clamp(mockMem+(41-mockMem)*.04+(Math.random()-.5)*1.1+(Math.random()<.04?(Math.random()-.4)*6:0),18,60);
++mt=64;mu=mockMem;push(mm,mu/mt*100);
++}
++function renderMem(){
++var p=mt&&mu!=null?mu/mt*100:null;
++$('mNum').textContent=fmt(p,'');lit('mScale',p,0,100);
++var rs=runs(mm,600,0,100);$('mLine').setAttribute('d',lineD(rs));$('mArea').setAttribute('d',areaD(rs));
++$('mUsed').textContent=mu==null?'-- GB':mu.toFixed(1)+' GB';
++$('mFree').textContent=mu==null||!mt?'-- GB':(mt-mu).toFixed(1)+' GB';
++$('mTotal').textContent=mt?Math.round(mt*10)/10+' GB':'-- GB';
++}
++/* ---------- GPU ---------- */
++var gs=[];
++var mock=[{name:'RTX 4090',total:24,tgt:88,vt:.78}
++,{name:'RTX 4090',total:24,tgt:72,vt:.64}
+@@ -927,8 +620,8 @@
+-function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+-var grid=document.getElementById('gGrid');
+-while(grid.children.length>
+-gpus.length)grid.removeChild(grid.lastElementChild);
+-gpus.forEach(function(g,i){
+-g.c=g.tgt;g.v=g.vt*g.total;g.t=36+g.tgt*.4;g.hc=[];g.hv=[];
+-var s=grid.children[i],made=!s;
+-if(made){s=document.createElement('section');s.className='gc';
++function newGpu(name,total){return {name:name,total:total,c:null,v:null,t:null,p:null,max:null,hc:[],hv:[]}
++}
++function buildGpus(){
++var grid=$('gGrid');grid.innerHTML='';
++grid.style.gridTemplateColumns=gs.length>
++1?'1fr 1fr':'1fr';
++gs.forEach(function(g,i){
++var s=document.createElement('section');s.className='gc';
+@@ -937 +630,8 @@
+-GPU '+i+'</b>
++<span class="cpuchip gpuchip">
++<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
++<rect x="2" y="6" width="17" height="11" rx="1.5"/>
++<circle cx="10.5" cy="11.5" r="3"/>
++<path d="M19 9h3M19 14h3M5 17v3M9 17v3"/>
++</svg>
++GPU</span>
++'+i+'</b>
+@@ -939 +639 @@
+-NVIDIA '+g.name+' · '+g.total+' GB</span>
++NVIDIA '+g.name.replace(/^NVIDIA\s+/i,'')+(g.total?' · '+Math.round(g.total*10)/10+' GB':'')+'</span>
+@@ -997,28 +697,2 @@
+-+'<div class="gchart">
+-<svg viewBox="0 0 300 100" preserveAspectRatio="none">
+-<line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
+-'
+-+'<path data-k="ca" fill="#1F5C52" fill-opacity=".13"/>
+-<path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+-'
+-+'<path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+-</svg>
+-'
+-+'<div class="lg">
+-<span>
+-<i style="background:#1F5C52">
+-</i>
+-CUDA</span>
+-<span>
+-<i style="background:#1B2421">
+-</i>
+-显存</span>
+-<span>
+--60s → 现在 · 0–100%</span>
+-</div>
+-</div>
+-';
+-grid.appendChild(s);}
+-g.el=s;g.p=30+g.tgt*3.9;g.max=450;
+-var pr=document.createElement('div');pr.className='pw';
+-pr.innerHTML='<label>
+++'<div class="pw">
++<label>
+@@ -1030 +704 @@
+-0</b>
++--</b>
+@@ -1036,0 +711,15 @@
++<span data-k="pm">
++/ -- W</span>
++</div>
++'
+++'<div class="gchart">
++<svg viewBox="0 0 300 100" preserveAspectRatio="none">
++<line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/>
++'
+++'<path data-k="ca" fill="#1F5C52" fill-opacity=".13"/>
++<path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
++'
+++'<path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
++</svg>
++'
+++'<div class="lg">
+@@ -1038 +727,11 @@
+-/ '+g.max+' W</span>
++<i style="background:#1F5C52">
++</i>
++CUDA</span>
++<span>
++<i style="background:#1B2421">
++</i>
++显存</span>
++<span>
++-60s → 现在 · 0–100%</span>
++</div>
++</div>
+@@ -1040,3 +739,4 @@
+-s.insertBefore(pr,s.querySelector('.gchart'));
+-}
+-);
++grid.appendChild(s);g.el=s;
++}
++);
++}
+@@ -1044,7 +744,7 @@
+-function path(a){return a.map(function(v,i){return (i/(N-1)*300).toFixed(1)+' '+(100-v).toFixed(1)}
+-)}
+-function step(){
+-gpus.forEach(function(g){
+-if(Math.random()<.03)g.tgt=clamp(g.tgt+(Math.random()-.5)*50,8,98);
+-g.c=clamp(g.c+(g.tgt-g.c)*.15+(Math.random()-.5)*8,2,100);
+-g.v=clamp(g.v+(g.vt*g.total-g.v)*.05+(Math.random()-.5)*.25,.6,g.total);
++function stepGpu(){
++gs.forEach(function(g,i){
++var m=mock[i];
++if(Math.random()<.03)m.tgt=clamp(m.tgt+(Math.random()-.5)*50,8,98);
++if(g.c==null){g.c=m.tgt;g.v=m.vt*g.total;g.t=36+m.tgt*.4}
++g.c=clamp(g.c+(m.tgt-g.c)*.15+(Math.random()-.5)*8,2,100);
++g.v=clamp(g.v+(m.vt*g.total-g.v)*.05+(Math.random()-.5)*.25,.6,g.total);
+@@ -1051,0 +752 @@
++g.max=450;if(g.p==null)g.p=30+m.tgt*3.9;
+@@ -1053,27 +754,31 @@
+-g.hc.push(g.c);g.hv.push(g.v/g.total*100);
+-if(g.hc.length>
+-N){g.hc.shift();g.hv.shift()}
+-}
+-);
+-}
+-for(var i=0;i<N;i++)step();
+-function render(){
+-var sumC=0,sumV=0,sumT=0,hot=0,hi=0,sumP=0;
+-gpus.forEach(function(g,i){
+-var vp=g.v/g.total*100;
+-q(g,'c').textContent=Math.round(g.c);q(g,'cb').style.width=g.c+'%';
+-q(g,'vp').textContent=Math.round(vp);q(g,'vb').style.width=vp+'%';
+-q(g,'vs').textContent=g.v.toFixed(1)+' / '+g.total+' GB';
+-q(g,'t').textContent=Math.round(g.t);q(g,'tb').style.width=clamp((g.t-30)/80*100,0,100)+'%';
+-q(g,'pw').textContent=Math.round(g.p);q(g,'pb').style.width=(g.p/g.max*100)+'%';sumP+=g.p;
+-var p=path(g.hc),pv=path(g.hv);
+-q(g,'cl').setAttribute('d','M'+p.join(' L'));
+-q(g,'ca').setAttribute('d','M'+p.join(' L')+' L300 100 L0 100Z');
+-q(g,'vl').setAttribute('d','M'+pv.join(' L'));
+-sumC+=g.c;sumV+=g.v;sumT+=g.t;if(g.t>
+-hot){hot=g.t;hi=i}
+-}
+-);
+-var tot=gpus.reduce(function(a,g){return a+g.total}
+-,0);
+-document.getElementById('gSum').innerHTML=
++push(g.hc,g.c);push(g.hv,g.v/g.total*100);
++}
++);
++}
++function renderGpu(){
++var n=gs.length;
++$('gGrid').hidden=!n;$('gSum').hidden=!n;$('gEmpty').hidden=!!n;
++if(!n){$('gEmpty').innerHTML=got?'未检测到 NVIDIA 显卡<br>
++请确认已安装驱动且 nvidia-smi 可用':'等待数据';return}
++var cs=[],ts=[],used=0,tot=0,hot=null,hi=0,sumP=0,sumMax=0,hasP=false;
++gs.forEach(function(g,i){
++var vp=g.v!=null&&g.total?g.v/g.total*100:null;
++q(g,'c').textContent=fmt(g.c,'');q(g,'cb').style.width=(g.c==null?0:g.c)+'%';
++q(g,'vp').textContent=fmt(vp,'');q(g,'vb').style.width=(vp==null?0:vp)+'%';
++q(g,'vs').textContent=g.v==null?'--':g.v.toFixed(1)+' / '+Math.round(g.total*10)/10+' GB';
++q(g,'t').textContent=fmt(g.t,'');q(g,'tb').style.width=(g.t==null?0:clamp((g.t-30)/80*100,0,100))+'%';
++q(g,'pw').textContent=fmt(g.p,'');
++q(g,'pb').style.width=(g.p==null||!g.max?0:clamp(g.p/g.max*100,0,100))+'%';
++q(g,'pm').textContent='/ '+(g.max?Math.round(g.max):'--')+' W';
++if(g.p!=null){sumP+=g.p;hasP=true}
++if(g.max)sumMax+=g.max;
++var rc=runs(g.hc,300,0,100),rv=runs(g.hv,300,0,100);
++q(g,'cl').setAttribute('d',lineD(rc));q(g,'ca').setAttribute('d',areaD(rc));q(g,'vl').setAttribute('d',lineD(rv));
++if(g.c!=null)cs.push(g.c);
++if(g.v!=null){used+=g.v}
++tot+=g.total||0;
++if(g.t!=null&&(hot==null||g.t>
++hot)){hot=g.t;hi=i}
++}
++);
++$('gSum').innerHTML=
+@@ -1082 +787 @@
+-'+gpus.length+' <small>
++'+n+' <small>
+@@ -1089 +794 @@
+-'+Math.round(sumC/gpus.length)+'<small>
++'+(cs.length?Math.round(avg(cs)):'--')+'<small>
+@@ -1096,2 +801,2 @@
+-'+sumV.toFixed(1)+' <small>
+-/ '+tot+' GB</small>
++'+used.toFixed(1)+' <small>
++/ '+Math.round(tot*10)/10+' GB</small>
+@@ -1103,2 +808,2 @@
+-'+Math.round(sumP)+' <small>
+-/ '+gpus.length*450+' W</small>
++'+(hasP?Math.round(sumP):'--')+' <small>
++/ '+(sumMax?Math.round(sumMax):'--')+' W</small>
+@@ -1110,2 +815,2 @@
+-'+Math.round(hot)+'<small>
+-°C · GPU '+hi+'</small>
++'+(hot==null?'--':Math.round(hot))+'<small>
++°C'+(hot==null?'':' · GPU '+hi)+'</small>
+@@ -1116,2 +821,91 @@
+-render();
+-setInterval(function(){step();render()}
++/* ---------- 磁盘 / 网络 ---------- */
++function mkIo(base,spread,burst,lo,hi){return {v:base,base:base,spread:spread,burst:burst,lo:lo,hi:hi,h:[],last:null}
++}
++var io={dr:mkIo(180,60,900,5,3200),dw:mkIo(70,30,500,2,2400),nd:mkIo(240,80,500,1,950),nu:mkIo(38,14,120,.5,400)}
++;
++function stepIo(){for(var k in io){var x=io[k];
++x.v=clamp(x.v+(x.base-x.v)*.12+(Math.random()-.5)*x.spread+(Math.random()<.05?Math.random()*x.burst:0),x.lo,x.hi);
++x.last=x.v;push(x.h,x.v)}
++}
++function ioPts(a,m,W){var off=N-a.length;return a.map(function(v,i){return [((off+i)/(N-1)*W).toFixed(1),(100-v/m*92).toFixed(1)]}
++)}
++function ioStr(p){return p.length>
++1?'M'+p.map(function(q){return q.join(' ')}
++).join(' L'):''}
++function ioDraw(a,b,l1,ar,l2){
++var m=Math.max(1,mx(a.h.concat(b.h))*1.1),p=ioPts(a.h,m,300);
++$(l1).setAttribute('d',ioStr(p));
++$(ar).setAttribute('d',p.length>
++1?ioStr(p)+' L'+p[p.length-1][0]+' 100 L'+p[0][0]+' 100Z':'');
++$(l2).setAttribute('d',ioStr(ioPts(b.h,m,300)));
++}
++function ioFmt(v){return v==null?'--':v>
++=100?String(Math.round(v)):v>
++=1?v.toFixed(1):v.toFixed(2)}
++/* ---------- 磁盘容量 ---------- */
++var dcap=null;
++function capUnit(gb){return gb>
++=1024?'TB':'GB'}
++/* 和上面 GB 的口径一致, 都用 1024 进制 */
++function capVal(gb){var v=capUnit(gb)==='TB'?gb/1024:gb;return v>
++=100?String(Math.round(v)):v>
++=10?v.toFixed(1):v.toFixed(2)}
++function renderDisk(){
++var el=$('dCap');
++if(!dcap||!dcap.total){el.hidden=true;return}
++el.hidden=false;
++var u=capUnit(dcap.total),free=dcap.total-dcap.used;
++$('dCapTx').textContent='容量 '+capVal(dcap.used)+' / '+capVal(dcap.total)+' '+u;
++$('dCapBar').style.width=clamp(dcap.used/dcap.total*100,0,100)+'%';
++el.title='磁盘容量:已用 '+capVal(dcap.used)+' '+u+',剩余 '+capVal(free)+' '+u
+++',共 '+capVal(dcap.total)+' '+u+(dcap.label?' ('+dcap.label+')':'');
++}
++function renderIo(){
++$('dR').textContent=ioFmt(io.dr.last);$('dW').textContent=ioFmt(io.dw.last);
++$('nD').textContent=ioFmt(io.nd.last);$('nU').textContent=ioFmt(io.nu.last);
++ioDraw(io.dr,io.dw,'dRl','dRa','dWl');ioDraw(io.nd,io.nu,'nDl','nDa','nUl');
++var dm=mx(io.dr.h.concat(io.dw.h)),nm=mx(io.nd.h.concat(io.nu.h));
++$('dMax').textContent='峰值 '+ioFmt(dm)+' MB/s';
++$('nMax').textContent='峰值 '+ioFmt(nm)+' Mbps';
++renderDisk();
++}
++/* ---------- 宿主入口 ---------- */
++window.pushSample=function(usage,temp,list,mem,dio,power,threads,disk){
++if(!live){live=true;u=[];t=[];gs=[];mm=[];cpw=null;for(var k in io){io[k].h=[];io[k].last=null}
++}
++got=true;
++cpw=power==null?null:power;
++if(disk&&disk.total)dcap=disk;
++if(threads&&threads.length){
++if(!thr||thr.length!==threads.length){thr=threads.slice();buildThreads(thr.length)}
++else thr=threads.slice();
++}
++else if(!threads){thr=null}
++push(u,usage);push(t,temp);renderCpu();
++mu=mem?mem.used:null;mt=mem?mem.total:null;push(mm,mu==null||!mt?null:mu/mt*100);renderMem();
++list=list||[];
++if(list.length!==gs.length){gs=list.map(function(d){return newGpu(d.name||'GPU',d.total)}
++);buildGpus()}
++list.forEach(function(d,i){
++var g=gs[i];g.total=d.total;g.c=d.cuda;g.v=d.used;g.t=d.temp;g.p=d.power==null?null:d.power;g.max=d.limit||null;
++push(g.hc,d.cuda);push(g.hv,d.cuda==null||d.used==null||!d.total?null:d.used/d.total*100);
++}
++);
++renderGpu();
++for(var k in io){var v=dio?dio[k]:null;io[k].last=v==null?null:v;push(io[k].h,v==null?0:v)}
++renderIo();
++}
++;
++if(live){
++renderCpu();renderMem();renderGpu();renderIo();
++}
++else{
++gs=mock.map(function(m){return newGpu(m.name,m.total)}
++);buildGpus();
++dcap={used:1430,total:2048,label:'NVMe SSD'}
++;  // 模拟数据 (和画布一致)
++thr=[];for(var k=0;k<44;k++)thr.push(35);buildThreads(thr.length);
++for(var i=0;i<N;i++){stepCpu();stepGpu();stepMem();stepIo()}
++renderCpu();renderMem();renderGpu();renderIo();
++setInterval(function(){if(!live){stepCpu();stepGpu();stepMem();stepIo();renderCpu();renderMem();renderGpu();renderIo()}
++}
+@@ -1120,65 +913,0 @@
+-)();
+-</script>
+-<script>
+-(function(){
+-var N=60,TOTAL=64,m=[],mv=41;
+-function step(){
+-mv=Math.max(18,Math.min(60,mv+(41-mv)*.04+(Math.random()-.5)*1.1+(Math.random()<.04?(Math.random()-.4)*6:0)));
+-m.push(mv);if(m.length>
+-N)m.shift();
+-}
+-for(var i=0;i<N;i++)step();
+-var sc=document.getElementById('mScale');
+-for(var i=0;i<50;i++)sc.appendChild(document.createElement('i'));
+-function render(){
+-var pct=mv/TOTAL*100,k=Math.round(pct/100*50);
+-document.getElementById('mNum').textContent=Math.round(pct);
+-[].forEach.call(sc.children,function(e,i){e.className=i<k?'on':''}
+-);
+-var p=m.map(function(v,i){return (i/(N-1)*600).toFixed(1)+' '+(100-v/TOTAL*100).toFixed(1)}
+-);
+-document.getElementById('mLine').setAttribute('d','M'+p.join(' L'));
+-document.getElementById('mArea').setAttribute('d','M'+p.join(' L')+' L600 100 L0 100Z');
+-document.getElementById('mUsed').textContent=mv.toFixed(1)+' GB';
+-document.getElementById('mFree').textContent=(TOTAL-mv).toFixed(1)+' GB';
+-}
+-render();
+-setInterval(function(){step();render()}
+-,1000);
+-}
+-)();
+-</script>
+-<script>
+-(function(){
+-var N=60;
+-function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+-function mk(base,spread,burst,lo,hi){return {v:base,base:base,spread:spread,burst:burst,lo:lo,hi:hi,h:[]}
+-}
+-var s={dr:mk(180,60,900,5,3200),dw:mk(70,30,500,2,2400),nd:mk(240,80,500,1,950),nu:mk(38,14,120,0.5,400)}
+-;
+-function step(){
+-for(var k in s){var x=s[k];
+-x.v=clamp(x.v+(x.base-x.v)*.12+(Math.random()-.5)*x.spread+(Math.random()<.05?Math.random()*x.burst:0),x.lo,x.hi);
+-x.h.push(x.v);if(x.h.length>
+-N)x.h.shift();}
+-}
+-for(var i=0;i<N;i++)step();
+-function el(id){return document.getElementById(id)}
+-function peak(a,b){return Math.max.apply(null,a.h.concat(b.h))}
+-function pts(a,m){return a.h.map(function(v,i){return (i/(N-1)*300).toFixed(1)+' '+(100-v/m*92).toFixed(1)}
+-)}
+-function draw(a,b,l1,ar,l2){var m=Math.max(100,peak(a,b)*1.1),p=pts(a,m);
+-el(l1).setAttribute('d','M'+p.join(' L'));el(ar).setAttribute('d','M'+p.join(' L')+' L300 100 L0 100Z');
+-el(l2).setAttribute('d','M'+pts(b,m).join(' L'));}
+-function fmt(v){return v>
+-=100?Math.round(v):v.toFixed(1)}
+-function render(){
+-el('dR').textContent=Math.round(s.dr.v);el('dW').textContent=Math.round(s.dw.v);
+-el('nD').textContent=fmt(s.nd.v);el('nU').textContent=fmt(s.nu.v);
+-draw(s.dr,s.dw,'dRl','dRa','dWl');draw(s.nd,s.nu,'nDl','nDa','nUl');
+-el('dMax').textContent='峰值 '+Math.round(peak(s.dr,s.dw))+' MB/s';
+-el('nMax').textContent='峰值 '+Math.round(peak(s.nd,s.nu))+' Mbps';
+-}
+-render();
+-setInterval(function(){step();render()}
+-,1000);
+@@ -1210,0 +940,3 @@
++/* 点击面板 ->
++前10进程。实时模式向宿主取数据 (window.pywebview.api.top(kind, gpuIndex)),
++单独用浏览器打开时用模拟数据。 */
+@@ -1212,4 +944,3 @@
+-var CPU=[['chrome.exe',9],['node.exe',7],['Code.exe',6],['ffmpeg.exe',8],['python.exe',7],['vmmem',6],['MsMpEng.exe',3],['dwm.exe',2.5],['explorer.exe',1.6],['Teams.exe',3.2],['Slack.exe',2],['System',1.4]];
+-var RAM=[['chrome.exe',9.5],['vmmem',7.5],['Code.exe',4.2],['python.exe',5.5],['node.exe',2.8],['Teams.exe',1.9],['Slack.exe',1.6],['explorer.exe',.9],['MsMpEng.exe',1.1],['dwm.exe',.7],['ffmpeg.exe',1.3],['Photoshop.exe',3.1]];
+-var GPU=[['python.exe (PyTorch)',9],['ollama.exe',6],['blender.exe',5],['ComfyUI',4.5],['chrome.exe',2],['dwm.exe',.9],['obs64.exe',1.6],['Code.exe',.7],['Premiere Pro.exe',3.2],['explorer.exe',.3],['Teams.exe',.5],['nvidia-container',.4]];
+-var pids={}
++var MOCK={cpu:[['chrome.exe',9],['node.exe',7],['Code.exe',6],['ffmpeg.exe',8],['python.exe',7],['vmmem',6],['MsMpEng.exe',3],['dwm.exe',2.5],['explorer.exe',1.6],['Teams.exe',3.2]],
++ram:[['chrome.exe',9.5],['vmmem',7.5],['Code.exe',4.2],['python.exe',5.5],['node.exe',2.8],['Teams.exe',1.9],['Slack.exe',1.6],['explorer.exe',.9],['MsMpEng.exe',1.1],['Photoshop.exe',3.1]],
++gpu:[['python.exe (PyTorch)',9],['ollama.exe',6],['blender.exe',5],['ComfyUI',4.5],['chrome.exe',2],['dwm.exe',.9],['obs64.exe',1.6],['Code.exe',.7],['Premiere Pro.exe',3.2],['explorer.exe',.3]]}
+@@ -1217,18 +948,29 @@
+-function pid(n){return pids[n]||(pids[n]=1000+Math.floor(Math.random()*30000))}
+-var pm=document.getElementById('pm'),cur=null,opener=null,timer=null;
+-function num(id){return parseFloat(document.getElementById(id).textContent)||0}
+-function rows(def,total,hi){
+-var w=def.map(function(d){return {n:d[0],v:d[1]*(.75+Math.random()*.5),g:d[1]*(.7+Math.random()*.6)}
+-}
+-);
+-var s=w.reduce(function(a,x){return a+x.v}
+-,0),sg=w.reduce(function(a,x){return a+x.g}
+-,0);
+-w.forEach(function(x){x.v=x.v/s*total;x.g=x.g/sg}
+-);
+-w.sort(function(a,b){return b.v-a.v}
+-);
+-return w.slice(0,10);
+-}
+-var DISK=[['chrome.exe',3,2],['ffmpeg.exe',8,9],['vmmem',5,6],['SearchIndexer.exe',4,1],['MsMpEng.exe',6,.8],['python.exe',9,4],['Code.exe',2,2.5],['System',1.5,3],['OneDrive.exe',2.5,2],['svchost.exe (WU)',3,1.2],['Photoshop.exe',3.5,5],['node.exe',2,1.4]];
+-var NET=[['chrome.exe',9,2],['OneDrive.exe',5,6],['Steam.exe',8,.5],['Teams.exe',3,3],['Slack.exe',1.5,1],['python.exe (pip)',3,.8],['Code.exe',1.5,.8],['svchost.exe (WU)',4,.3],['qbittorrent.exe',6,7],['Dropbox.exe',2,3],['msedge.exe',2.5,.6],['Spotify.exe',2,.2]];
++var DISK=[['chrome.exe',3,2],['ffmpeg.exe',8,9],['vmmem',5,6],['SearchIndexer.exe',4,1],['MsMpEng.exe',6,.8],['python.exe',9,4],['Code.exe',2,2.5],['System',1.5,3],['OneDrive.exe',2.5,2],['svchost.exe (WU)',3,1.2]];
++var NET=[['chrome.exe',9,2],['OneDrive.exe',5,6],['Steam.exe',8,.5],['Teams.exe',3,3],['Slack.exe',1.5,1],['python.exe (pip)',3,.8],['Code.exe',1.5,.8],['svchost.exe (WU)',4,.3],['qbittorrent.exe',6,7],['Dropbox.exe',2,3]];
++var pm=document.getElementById('pm'),cur=null,opener=null,timer=null,busy=false;
++function $(id){return document.getElementById(id)}
++function num(id){return parseFloat($(id).textContent)||0}
++function num2(e){return parseFloat(e.textContent)||0}
++function esc(t){return String(t).replace(/[&<>
++"]/g,function(c){return {'&':'&amp;','<':'&lt;','>
++':'&gt;','"':'&quot;'}
++[c]}
++)}
++function hasApi(){return !!(window.pywebview&&window.pywebview.api&&window.pywebview.api.top)}
++function mockRows(c){
++if(c.t==='disk'||c.t==='net'){
++var tr=num(c.ids[0]),tw=num(c.ids[1]);
++return (c.t==='disk'?DISK:NET).map(function(d){return {name:d[0],pid:1000+d[0].length*997%30000,r:d[1]*(.75+Math.random()*.5)*tr/20,w:d[2]*(.75+Math.random()*.5)*tw/12}
++}
++);
++}
++var rows=MOCK[c.t].map(function(d){return {name:d[0],pid:1000+d[0].length*997%30000,v:d[1]*(.75+Math.random()*.5),ex:Math.round(Math.random()*60)}
++}
++);
++return rows.sort(function(a,b){return b.v-a.v}
++);
++}
++function fetchRows(c){
++if(hasApi())return window.pywebview.api.top(c.t,c.idx||0);
++return Promise.resolve(mockRows(c));
++}
+@@ -1236,14 +978,10 @@
+-=100?Math.round(v)+'':v.toFixed(1)}
+-function renderIO(c){
+-var def=c.t==='disk'?DISK:NET,tr=num(c.ids[0]),tw=num(c.ids[1]),u=c.unit;
+-var w=def.map(function(d){return {n:d[0],r:d[1]*(.75+Math.random()*.5),w:d[2]*(.75+Math.random()*.5)}
+-}
+-);
+-var sr=0,sw=0;w.forEach(function(x){sr+=x.r;sw+=x.w}
+-);
+-w.forEach(function(x){x.r=x.r/sr*tr*.94;x.w=x.w/sw*tw*.94;x.s=x.r+x.w}
+-);
+-w.sort(function(a,b){return b.s-a.s}
+-);w=w.slice(0,10);
+-var max=w[0].s;
+-document.getElementById('pHead').innerHTML='<tr>
++=100?Math.round(v)+'':v>
++=1?v.toFixed(1):v.toFixed(2)}
++function drawIo(c,rows){
++var mode=hasApi()?'实时数据':'模拟数据',u=c.unit;
++rows.forEach(function(x){x.s=x.r+x.w}
++);
++rows.sort(function(a,b){return b.s-a.s}
++);rows=rows.slice(0,10);
++var max=rows.length?Math.max(rows[0].s,1e-9):1;
++$('pHead').innerHTML='<tr>
+@@ -1264 +1002 @@
+-document.getElementById('pBody').innerHTML=w.map(function(x,i){
++$('pBody').innerHTML=rows.length?rows.map(function(x,i){
+@@ -1270 +1008 @@
+-'+x.n+'</span>
++'+esc(x.name)+'</span>
+@@ -1273 +1011 @@
+-'+pid(x.n)+'</td>
++'+x.pid+'</td>
+@@ -1286,19 +1024,17 @@
+-).join('');
+-document.getElementById('pFoot').textContent='按'+c.cols[0]+'+'+c.cols[1]+'合计降序 · 条形为合计占比 · '+c.cols[0]+' '+uf(tr)+' '+u+' · '+c.cols[1]+' '+uf(tw)+' '+u+' · 模拟数据';
+-}
+-function render(){
+-if(!cur)return;
+-var c=cur,list,total,fmt,max,exh='',foot;
+-document.getElementById('pBody').parentNode.classList.toggle('io',c.t==='disk'||c.t==='net');
+-if(c.t==='disk'||c.t==='net'){renderIO(c);return}
+-if(c.t==='cpu'){total=num('uNum')*.92;list=rows(CPU,total);fmt=function(x){return x.v.toFixed(1)+'%'}
+-;foot='按 CPU 占用降序 · 总使用率 '+Math.round(num('uNum'))+'% · 模拟数据'}
+-else if(c.t==='ram'){total=num('mNum')/100*64*.88;list=rows(RAM,total);fmt=function(x){return x.v.toFixed(1)+' GB'}
+-;foot='按内存占用降序 · 已用 '+document.getElementById('mUsed').textContent+' / 64 GB · 模拟数据'}
+-else{var sec=c.el,vs=sec.querySelector('[data-k=vs]').textContent,used=parseFloat(vs),cu=num2(sec.querySelector('[data-k=c]'));total=used*.96;list=rows(GPU,total);fmt=function(x){return x.v.toFixed(1)+' GB'}
+-;exh='<th class="ex">
+-CUDA</th>
+-';foot='按显存占用降序 · 显存 '+vs+' · CUDA '+Math.round(cu)+'% · 模拟数据'; list.forEach(function(x){x.ex=Math.round(Math.min(99,cu*x.g*1.0))+'%'}
+-)}
+-max=list[0].v;
+-document.getElementById('pHead').innerHTML='<tr>
++).join('')
++:'<tr>
++<td colspan="6" style="padding:18px 0;color:var(--soft);text-align:center">
++暂无进程数据</td>
++</tr>
++';
++$('pFoot').textContent='按'+c.cols[0]+'+'+c.cols[1]+'合计降序 · 条形为合计占比 · '+c.cols[0]+' '+$(c.ids[0]).textContent+' '+u+' · '+c.cols[1]+' '+$(c.ids[1]).textContent+' '+u+' · '+mode;
++}
++function draw(c,rows){
++$('pBody').parentNode.classList.toggle('io',c.t==='disk'||c.t==='net');
++if(c.t==='disk'||c.t==='net'){drawIo(c,rows);return}
++var gpu=c.t==='gpu',max=rows.length?Math.max(rows[0].v,1e-9):1,foot;
++var mode=hasApi()?'实时数据':'模拟数据';
++if(c.t==='cpu')foot='按 CPU 占用降序 · 总使用率 '+Math.round(num('uNum'))+'% · '+mode;
++else if(c.t==='ram')foot='按内存占用降序 · 已用 '+$('mUsed').textContent+' / '+$('mTotal').textContent+' · '+mode;
++else{var vs=c.el.querySelector('[data-k=vs]').textContent;foot='按显存占用降序 · 显存 '+vs+' · CUDA '+Math.round(num2(c.el.querySelector('[data-k=c]')))+'% · '+mode}
++$('pHead').innerHTML='<tr>
+@@ -1313 +1049,3 @@
+-'+exh+'<th>
++'+(gpu?'<th class="ex">
++CUDA</th>
++':'')+'<th>
+@@ -1317 +1055,2 @@
+-document.getElementById('pBody').innerHTML=list.map(function(x,i){
++$('pBody').innerHTML=rows.length?rows.map(function(x,i){
++var val=c.t==='cpu'?x.v.toFixed(1)+'%':x.v.toFixed(1)+' GB';
+@@ -1323 +1062 @@
+-'+x.n+'</span>
++'+esc(x.name)+'</span>
+@@ -1326 +1065 @@
+-'+pid(x.n)+'</td>
++'+x.pid+'</td>
+@@ -1333,2 +1072,2 @@
+-'+(c.t==='gpu'?'<td class="ex">
+-'+x.ex+'</td>
++'+(gpu?'<td class="ex">
++'+Math.round(x.ex||0)+'%</td>
+@@ -1336 +1075 @@
+-'+fmt(x)+'</td>
++'+val+'</td>
+@@ -1339,4 +1078,16 @@
+-).join('');
+-document.getElementById('pFoot').textContent=foot;
+-}
+-function num2(e){return parseFloat(e.textContent)||0}
++).join('')
++:'<tr>
++<td colspan="'+(gpu?6:5)+'" style="padding:18px 0;color:var(--soft);text-align:center">
++暂无进程数据</td>
++</tr>
++';
++$('pFoot').textContent=foot;
++}
++function refresh(){
++if(!cur||busy)return;
++var c=cur;busy=true;
++fetchRows(c).then(function(rows){if(cur===c)draw(c,rows||[])}
++,function(){}
++).then(function(){busy=false}
++);
++}
+@@ -1345,6 +1096,6 @@
+-var chip=document.getElementById('pChip');chip.style.background=c.bg;chip.innerHTML=c.chip;
+-document.getElementById('pTitle').textContent=c.title;document.getElementById('pSub').textContent='TOP 10 · 每秒刷新';
+-document.getElementById('pm').style.setProperty('--pc',c.bg);
+-document.getElementById('pBody').parentNode.style.setProperty('--pc',c.bg);
+-pm.hidden=false;render();clearInterval(timer);timer=setInterval(render,1000);
+-document.getElementById('pClose').focus();
++var chip=$('pChip');chip.style.background=c.bg;chip.innerHTML=c.chip;
++$('pTitle').textContent=c.title;$('pSub').textContent='TOP 10 · 每秒刷新';
++$('pBody').parentNode.style.setProperty('--pc',c.bg);
++pm.hidden=false;$('pHead').innerHTML='';$('pBody').innerHTML='';$('pFoot').textContent='读取中…';
++busy=false;refresh();clearInterval(timer);timer=setInterval(refresh,1000);
++$('pClose').focus();
+@@ -1355,0 +1107,6 @@
++</svg>
++';
++var GP='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
++<rect x="2" y="6" width="17" height="11" rx="1.5"/>
++<circle cx="10.5" cy="11.5" r="3"/>
++<path d="M19 9h3M19 14h3M5 17v3M9 17v3"/>
+@@ -1374,2 +1131,2 @@
+-var n=el.querySelector('.gh b').textContent;
+-return {t:'gpu',el:el,title:'显存占用最高的 10 个进程',bg:'#1F5C52',chip:n,col:'显存'}
++var idx=[].indexOf.call(el.parentNode.children,el);
++return {t:'gpu',el:el,idx:idx,title:'显存占用最高的 10 个进程',bg:'#1F5C52',chip:GP+'GPU '+idx,col:'显存'}
+@@ -1378,8 +1135,14 @@
+-[].forEach.call(document.querySelectorAll('.cpucol .panel,.gc,.ic'),function(el){
+-el.classList.add('hit');el.tabIndex=0;el.setAttribute('role','button');
+-el.setAttribute('aria-label','查看占用最高的10个进程');
+-el.addEventListener('click',function(){open(conf(el),el)}
+-);
+-el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open(conf(el),el)}
+-}
+-);
++function trigger(el){open(conf(el),el)}
++function arm(el){el.classList.add('hit');el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','查看占用最高的10个进程')}
++[].forEach.call(document.querySelectorAll('.cpucol .panel,.gc,.ic'),arm);
++new MutationObserver(function(){[].forEach.call(document.querySelectorAll('.gc:not(.hit)'),arm)}
++).observe($('gGrid'),{childList:true}
++);
++document.addEventListener('click',function(e){
++var el=e.target.closest&&e.target.closest('.cpucol .panel,.gc,.ic');
++if(el&&!pm.contains(e.target))trigger(el);
++}
++);
++document.addEventListener('keydown',function(e){
++if(e.key==='Escape'&&!pm.hidden){close();return}
++if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('hit')){e.preventDefault();trigger(e.target)}
+@@ -1390,3 +1153 @@
+-document.getElementById('pClose').addEventListener('click',close);
+-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!pm.hidden)close()}
+-);
++$('pClose').addEventListener('click',close);

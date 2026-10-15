@@ -1,10 +1,12 @@
 {
-  "exportedAt": "2026-10-13",
+  "exportedAt": "2026-10-14",
   "source": "doop @ http://localhost:4300 (C:\\frank\\develop\\tools\\doop)",
   "canvas": {
     "id": "4oOsx_c1XZ",
     "name": "frank's first canvas",
     "ownerId": "KVLyZOvSI6GTBJ1fWmkEoVZsdpwyp1F1",
+    "createdAt": "2026-10-13T14:31:01+08:00",
+    "updatedAt": "2026-10-14T11:05:22+08:00",
     "pages": [{ "id": "4oOsx_c1XZ:page1", "name": "Page 1" }],
     "guidelines": [],
     "references": []
@@ -13,14 +15,26 @@
     "id": "cqRmTuFCPK",
     "name": "CPU Monitor",
     "pageId": "4oOsx_c1XZ:page1",
-    "x": 786,
+    "x": 785,
     "y": 35,
     "width": 1052,
     "height": 802,
-    "htmlBytes": 42692,
-    "updatedAt": "2026-10-13T09:56:17.650Z",
-    "updatedBy": "frank"
+    "htmlBytes": 48072,
+    "updatedAt": "2026-10-14T11:05:22+08:00",
+    "updatedBy": "Doop"
   },
+  "comments": [
+    {
+      "id": "UqRpzNFn",
+      "from": "frank",
+      "text": "缩小@doop",
+      "at": "2026-10-13T15:08:51+08:00",
+      "anchor": "body > main:nth-of-type(1) > section:nth-of-type(2)",
+      "targetAgent": "Doop",
+      "resolvedBy": "Doop",
+      "resolvedAt": "2026-10-13T15:09:04+08:00"
+    }
+  ],
   "files": {
     "html": "pulse-canvas-frame.html",
     "png": "pulse-canvas-2x.png"
