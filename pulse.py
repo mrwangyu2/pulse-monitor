@@ -8,9 +8,18 @@ CPU 使用率: 调用 kernel32.GetSystemTimes, 两次采样之间的差值即为
 CPU 温度:   读取 LibreHardwareMonitor 的 Remote Web Server (http://localhost:8085/data.json)。
             没有运行它时温度面板显示"未检测到温度传感器"。见 lhm.py —— 程序旁边带了一份
             LHM (LibreHardwareMonitor\\ 文件夹), 首次启动会问用户要不要装到本机并开机自启。
+GPU:        数值取 LHM: 每张卡的占用率、温度 (Temperatures\\GPU Core)、功耗都从这棵树里取
+            (已用显存例外, 见下面那句)。
+            面板上 "GPU 0 / 1" 的编号则按 PCI 顺序 —— 也就是 nvidia-smi 的 index, 和 Windows
+            任务管理器里的编号是同一套 (本机实测两边都是 GPU 0 = PCI 总线 3)。
+            **LHM 的枚举顺序不是这一套** (它走 NVAPI, 本机实测正好相反), 同型号的卡两边名字又一样,
+            所以拿两边都会报的功耗/风扇转速把卡一张张对上号, 见 _pair_gpus —— 不能按位置硬配。
+            nvidia-smi 因此只剩两个用处: 定 PCI 顺序当编号, 以及供 LHM 没有的功耗上限。
+            已用显存单独走 Windows 的 GPU Adapter Memory 计数器: LHM 和 nvidia-smi 都看不到
+            一张卡上那 20 GB (本机实测它们都只报 ~2 GB), 而计数器的值和任务管理器一致。
+            没装 / 没在跑 LHM 时, GPU 面板整个退回 nvidia-smi (随 NVIDIA 驱动安装), 和以前一样。
 内存:       kernel32.GlobalMemoryStatusEx 取物理内存已用/总量。
 磁盘/网络: psutil 的 IO 计数器差值 (MB/s, Mbps)。
-GPU:        调用 nvidia-smi (随 NVIDIA 驱动安装), 取每张卡的 CUDA 使用率、显存、温度。
 
 点击面板弹出"前10进程": 页面调用 window.pywebview.api.top(kind, gpu_index) 按需取数据;
 CPU/内存/磁盘用 psutil, GPU 进程显存与 CUDA 用 Windows 性能计数器 (GPU Process Memory / GPU Engine),
@@ -19,13 +28,16 @@ CPU/内存/磁盘用 psutil, GPU 进程显存与 CUDA 用 Windows 性能计数�
 
 依赖: pip install pywebview psutil pywintrace pystray pillow  (使用系统自带的 WebView2)
 
-托盘: 常驻 Windows 系统托盘 (见 tray.py)。点窗口 × 只是把窗口藏起来, 采样继续;
-真正退出走托盘菜单的"退出 Pulse"。加 --tray 参数启动时只进托盘不弹窗 (开机自启用这个)。
+托盘: 常驻 Windows 系统托盘 (见 tray.py)。**启动时窗口是隐藏的** —— 只进托盘, 点托盘图标
+(或菜单里的"显示窗口") 才弹出来, 再点一下收回去。窗口就摆在右下角 (和悬停弹窗同一处,
+见 tray.start_pos), 所以显示的时候不用再挪, 不会闪。点窗口 × 也只是藏起来, 采样继续;
+真正退出走托盘菜单的"退出 Pulse"。加 --tray 起的进程连气泡都不发 (开机自启用这个)。
 开机自启写 HKCU 下 Software\\Microsoft\\Windows\\CurrentVersion\\Run 的 Pulse 值, 不需要管理员。
 """
 
 import atexit
 import ctypes
+import itertools
 import json
 import re
 import struct
@@ -228,34 +240,153 @@ def _number(text):
     return float(m.group().replace(",", ".")) if m else None
 
 
-def _cpu_sensors(node, section, in_cpu=False, parent_is_section=False, out=None):
+# LHM 用图标区分设备类型, 这几张是它给显卡的图标 (NVIDIA / AMD / Intel 核显)
+_GPU_ICONS = ("nvidia", "ati", "intel")
+
+
+def _devices(node, icons, out=None):
+    """树里所有带某种图标的设备节点 (LHM 靠图标区分设备类型: cpu.png / nvidia.png ...)。
+
+    要带子节点才算数 —— 真正的设备底下挂的是 Temperatures / Powers 这些分组。
+    """
     out = [] if out is None else out
-    text = node.get("Text", "")
-    in_cpu = in_cpu or "cpu" in node.get("ImageURL", "").lower()
-    if in_cpu and parent_is_section and not node.get("Children") and "distance" not in text.lower():
-        value = _number(node.get("Value"))
-        if value is not None:
-            out.append((text, value))
+    if node.get("Children") and any(i in node.get("ImageURL", "").lower() for i in icons):
+        out.append(node)
     for child in node.get("Children", []):
-        _cpu_sensors(child, section, in_cpu, text == section, out)
+        _devices(child, icons, out)
     return out
 
 
-def read_cpu_sensors():
-    """LibreHardwareMonitor 一次请求同时取 (CPU 温度 °C, CPU 封装功耗 W); 取不到的项为 None。"""
+def _section_values(dev, section):
+    """设备节点下某个分组 (Temperatures / Powers ...) 里的传感器: [(名称, 数值)]。
+
+    "Distance to TjMax" 是到温度墙的余量, 不是温度本身, 跳过。
+    """
+    out = []
+    for group in dev.get("Children", []):
+        if group.get("Text") != section:
+            continue
+        for leaf in group.get("Children", []):
+            value = _number(leaf.get("Value"))
+            if value is not None and "distance" not in leaf.get("Text", "").lower():
+                out.append((leaf.get("Text", ""), value))
+    return out
+
+
+def _lhm_tree():
+    """LHM 的整棵树 (CPU 温度/功耗和 GPU 温度都在里面); 它没在跑时返回 None。
+
+    每秒只请求一次, 几个读数共用, 免得各读各的把那 0.8 秒超时耗两遍。
+    """
     try:
         with _opener.open(LHM_URL, timeout=0.8) as resp:
-            tree = json.load(resp)
+            return json.load(resp)
     except (OSError, ValueError):
+        return None
+
+
+def read_cpu_sensors(tree):
+    """从 LHM 的树里取 (CPU 温度 °C, CPU 封装功耗 W); 取不到的项为 None。"""
+    cpus = _devices(tree or {}, ("cpu",))
+    if not cpus:
         return None, None
-    temps = _cpu_sensors(tree, "Temperatures")
-    temp = None
-    if temps:
-        temp = next((v for n, v in temps if "package" in n.lower()), None)
-        if temp is None:
-            temp = max(v for _, v in temps)
-    power = next((v for n, v in _cpu_sensors(tree, "Powers") if "package" in n.lower()), None)
+    temps = _section_values(cpus[0], "Temperatures")
+    temp = next((v for n, v in temps if "package" in n.lower()), None)
+    if temp is None and temps:
+        temp = max(v for _, v in temps)
+    power = next((v for n, v in _section_values(cpus[0], "Powers") if "package" in n.lower()), None)
     return temp, power
+
+
+def _norm_gpu(name):
+    """显卡名的比对写法 —— LHM 和 nvidia-smi 用的都是驱动里那个全名, 只差大小写和空格。"""
+    return re.sub(r"\s+", " ", re.sub(r"\((?:R|TM|C)\)", "", name or "", flags=re.I)).strip().lower()
+
+
+def _sensor(dev, section, name):
+    """某个分组里名为 name 的那个传感器 (名字不区分大小写)。"""
+    return next((v for n, v in _section_values(dev, section) if n.strip().lower() == name), None)
+
+
+def _lhm_gpus(tree):
+    """LHM 里每张显卡的读数。
+
+    "GPU Core" 在 Load 和 Temperatures 两个分组里都有, 分别是核心占用率和核心温度。
+    功耗和风扇转速除了显示, 还要拿来认卡 —— LHM 和 nvidia-smi 的枚举顺序不一定一样,
+    见 _pair_gpus。
+    """
+    cards = []
+    for dev in _devices(tree or {}, _GPU_ICONS):
+        used = _sensor(dev, "Data", "gpu memory used")
+        total = _sensor(dev, "Data", "gpu memory total")
+        cards.append({
+            "name": (dev.get("Text") or "").strip(),
+            "cuda": _sensor(dev, "Load", "gpu core"),
+            "used": used / 1024 if used is not None else None,  # LHM 报 MB, 面板要 GB
+            "total": total / 1024 if total is not None else None,
+            "temp": _sensor(dev, "Temperatures", "gpu core"),
+            "power": _sensor(dev, "Powers", "gpu package"),
+            "fan": _sensor(dev, "Controls", "gpu fan"),
+        })
+    return cards
+
+
+def _limits(rows):
+    """nvidia-smi 的功耗上限, 按显卡名收着 —— 上限是型号的属性, 同型号的卡都一样。
+
+    LHM 没有这一项, 所以它是面板上唯一还从 nvidia-smi 借的值。也正因为它是按型号来的,
+    这里只看名字, 不需要 (也没法) 把同型号的卡一张张对上号。
+    """
+    out = {}
+    for row in rows:
+        out.setdefault(_norm_gpu(row["name"]), row["limit"])
+    return out
+
+
+# nvidia-smi 第 i 张卡 ↔ LHM 显卡列表里的第几个。还没认出来时是 None, 按位置兜底。
+_pairing = None
+_PAIR_MARGIN = 2.0  # 两种配法差不到这么多 (W 或 %), 就当分不出来
+_UNLIKE = 1000.0  # 名字对不上时的差距, 大到任何真实的功耗/转速差都盖不过去
+
+
+def _gap(nv, lhm):
+    """两张卡有多像: 名字一样的话, 看功耗和风扇转速各差多少 (哪边缺数据就跳过哪一项)。
+
+    名字对不上直接判不像 —— 两张不同型号的卡本来就该按名字配。名字在这里现归一化再比,
+    不要求调用方先处理 (LHM 和 nvidia-smi 两边只差大小写和空格, 忘了归一化就会全都看着不像,
+    于是每一次配对都打平、认不出卡 —— 这个坑踩过两次了)。
+    """
+    if nv["name"] and lhm["name"] and _norm_gpu(nv["name"]) != _norm_gpu(lhm["name"]):
+        return _UNLIKE
+    return sum(abs(nv[k] - lhm[k]) for k in ("power", "fan")
+               if nv[k] is not None and lhm[k] is not None)
+
+
+def _pair_gpus(rows, cards):
+    """nvidia-smi 的每张卡对应 LHM 的哪一张 —— 返回下标列表, 分不出来就返回 None。
+
+    两边的枚举顺序不能想当然: LHM 走 NVAPI 的顺序, nvidia-smi 按 PCI 顺序编号, 两张同型号的卡
+    在这两套顺序里可能是反的 (本机就是: 同一时刻 43W、风扇 40% 的那张, nvidia-smi 里是 0 号,
+    LHM 里是第 2 张)。同型号看名字分不出来, 所以拿两边都会报的功耗和风扇转速当指纹 —— 认出来
+    的标准是"这一种配法明显比其他配法都像"。
+
+    认出来之后就固定下来, 不再每秒重认 —— 两张卡负载一样的时候指纹是重合的, 重认会来回翻。
+    """
+    global _pairing
+    n = len(rows)
+    if _pairing is not None and len(_pairing) == n:
+        return _pairing
+    if not n or len(cards) < n:
+        return None
+    prints = [{"name": r["name"], "power": r["power"], "fan": r["fan"]} for r in rows]
+    scored = sorted(
+        (sum(_gap(prints[i], cards[p[i]]) for i in range(n)), p)
+        for p in itertools.permutations(range(len(cards)), n)
+    )
+    if len(scored) > 1 and scored[0][0] + _PAIR_MARGIN > scored[1][0]:
+        return None  # 几种配法一样像, 认不出来
+    _pairing = list(scored[0][1])
+    return _pairing
 
 
 class _Rates:
@@ -280,7 +411,8 @@ class _Rates:
 
 _rates = _Rates()
 
-_GPU_QUERY = "index,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw,power.limit"
+_GPU_QUERY = ("index,name,utilization.gpu,memory.used,memory.total,"
+              "temperature.gpu,power.draw,power.limit,fan.speed")
 
 
 def _field(text):
@@ -291,8 +423,11 @@ def _field(text):
         return None
 
 
-def read_gpus():
-    """每张 NVIDIA 显卡一项: name, total(GB), cuda(%), used(GB), temp(°C), power(W), limit(W); 没有驱动/显卡时返回 []。"""
+def _nvidia_gpus():
+    """nvidia-smi 的每张卡: name, cuda(%), used/total(MiB), temp(°C), power/limit(W); 没有驱动/显卡时返回 []。
+
+    这份读数现在只干两件事: 给面板供 LHM 没有的功耗上限, 以及 LHM 不在时整个兜底。
+    """
     try:
         proc = subprocess.run(
             ["nvidia-smi", f"--query-gpu={_GPU_QUERY}", "--format=csv,noheader,nounits"],
@@ -303,22 +438,88 @@ def read_gpus():
         return []
     if proc.returncode != 0:
         return []
-    gpus = []
+    rows = []
     for line in proc.stdout.splitlines():
         parts = [p.strip() for p in line.split(",")]
-        if len(parts) != 8:
+        if len(parts) != 9:
             continue
-        _, name, cuda, used, total, temp, power, limit = parts
-        used, total = _field(used), _field(total)
-        gpus.append({
+        _, name, cuda, used, total, temp, power, limit, fan = parts
+        rows.append({
             "name": name,
-            "total": total / 1024 if total is not None else 0,
             "cuda": _field(cuda),
-            "used": used / 1024 if used is not None else None,
+            "used": _field(used),
+            "total": _field(total),
             "temp": _field(temp),
             "power": _field(power),
             "limit": _field(limit),
+            "fan": _field(fan),  # 只为认卡, 不显示
         })
+    return rows
+
+
+def _nvidia_row(row):
+    """面板上的一行, 数值全用 nvidia-smi 自己的读数 (LHM 里没有这张卡时用)。"""
+    return {
+        "name": row["name"],
+        "total": row["total"] / 1024 if row["total"] is not None else 0,
+        "cuda": row["cuda"],
+        "used": row["used"] / 1024 if row["used"] is not None else None,
+        "temp": row["temp"],
+        "power": row["power"],
+        "limit": row["limit"],
+    }
+
+
+def _lhm_row(card, limit):
+    """面板上的一行: 名字和数值都取自 LHM, 功耗上限由外面传 (LHM 没有这一项)。"""
+    return {
+        "name": card["name"],
+        "total": card["total"] or 0,
+        "cuda": card["cuda"],
+        "used": card["used"],
+        "temp": card["temp"],
+        "power": card["power"],
+        "limit": limit,
+    }
+
+
+def _nvidia_panel(rows):
+    """LHM 不在时的整份面板数据: 全从 nvidia-smi 来, 顺序也就是 nvidia-smi 的 index。"""
+    return [_nvidia_row(row) for row in rows]
+
+
+def _panel_rows(rows, cards):
+    """面板上的一行行数据: 顺序按 PCI (= nvidia-smi 的 index), 数值取 LHM。"""
+    if not cards:
+        return _nvidia_panel(rows)  # LHM 不在: 整份退回 nvidia-smi
+    limits = _limits(rows)
+    if not rows:
+        return [_lhm_row(c, limits.get(_norm_gpu(c["name"]))) for c in cards]  # 没有 nvidia-smi: 按 LHM 的顺序
+    pair = _pair_gpus(rows, cards)  # nvidia-smi 第 i 张 = cards[pair[i]]; None = 没认出来
+    out = []
+    for i, row in enumerate(rows):
+        j = pair[i] if pair else i  # 认不出来就按位置配
+        card = cards[j] if j < len(cards) else None
+        out.append(_lhm_row(card, limits.get(_norm_gpu(card["name"]))) if card else _nvidia_row(row))
+    return out
+
+
+def read_gpus(tree=None):
+    """每张显卡一项: name, total(GB), cuda(%), used(GB), temp(°C), power(W), limit(W); 一张卡都没有时返回 []。
+
+    行顺序按 PCI 顺序 —— 面板上的 "GPU 0 / 1 / …" 用的是 nvidia-smi 的 index, 和 Windows
+    任务管理器里的编号是同一套 (本机实测两边一致: GPU 0 = PCI 总线 3)。数值则取 LHM。
+
+    两边的枚举顺序不保证一样 (LHM 走 NVAPI, 本机实测和 PCI 顺序正好相反), 所以不能按位置配,
+    得拿功耗/风扇转速把卡一张张对上号, 见 _pair_gpus。
+
+    已用显存是唯一的例外: 它单独走 Windows 的 GPU Adapter Memory 计数器。LHM 和 nvidia-smi 都
+    看不到 WSL 显存虚拟化占掉的那部分 —— 本机实测那张 20 GB 的卡它们都报 ~2 GB, 而这个计数器的
+    值和任务管理器一致。它的 phys 序号也是 PCI 顺序, 所以按位置对得上 (见 _adapter_mem)。
+
+    LHM 没装 / 没在跑时整个退回 nvidia-smi; 反过来没有 nvidia-smi 时按 LHM 自己的顺序排。
+    """
+    gpus = _panel_rows(_nvidia_gpus(), _lhm_gpus(tree))
     used = _adapter_mem.used_gb(len(gpus)) if gpus else None
     if used:
         for g, u in zip(gpus, used):
@@ -714,28 +915,33 @@ def sample_loop(window, loaded, stop, tray):
     prev_thr = psutil.cpu_times(percpu=True)  # 每个逻辑核的使用率要两次采样才能算差值
     # 窗口尺寸由 create_window 的 min_size 钉住 (内容区 1052×802), 这里不再手动补偿
     # 标题栏 —— 托盘悬停要挪窗口, 手动改尺寸会跟它打架。
-    template = "" if TRAY_ONLY else (window.evaluate_js("document.title") or "")  # 读不到机型时的兜底
+    # 窗口起始是隐藏的, 这一刻不去碰页面 (evaluate_js 对没显示出来的窗口不保险); 标题每秒都会
+    # 按本机实况重建, 这个模板只在"CPU/显卡/内存全都读不到"时才用得上, 留空即可。
+    template = ""
     cpu_name = read_cpu_name()  # 型号不会变, 只读一次
     disk_label = _disk_label()  # 磁盘类型也不会变, 读一次就够
     shown = None
     while not stop.wait(1.0):
         cur = _system_times()
         cur_thr = psutil.cpu_times(percpu=True)
-        usage, (temp, power), gpus, mem = _usage_between(prev, cur), read_cpu_sensors(), read_gpus(), read_memory()
+        tree = _lhm_tree()  # CPU 温度/功耗和 GPU 温度都从这棵树里取, 一次请求
+        usage, (temp, power), gpus, mem = _usage_between(prev, cur), read_cpu_sensors(tree), read_gpus(tree), read_memory()
         threads = _threads_between(prev_thr, cur_thr)
         disk = read_disk(disk_label)
         io = _rates.read()
         prev, prev_thr = cur, cur_thr
         tray.update(usage, mem, gpus)  # 先更新 tooltip, 窗口藏着的时候也要刷新
-        if not tray.visible:
-            continue  # 藏在托盘里, 页面反正看不见, 省掉每秒的推送
         args = ",".join(json.dumps(x) for x in (usage, temp, gpus, mem, io, power, threads, disk))
         try:
-            window.evaluate_js(f"window.pushSample({args})")
+            # 标题跟显隐无关: 窗口一露出来就该是完整标题, 不用等下一次采样。机型基本不变,
+            # 所以 title != shown 几乎总是假, 这个 set_title 实际上只在开头调一两次。
             title = _live_title(template, cpu_name, gpus, mem)
             if title and title != shown:
                 window.set_title(title)
                 shown = title
+            if not tray.visible:
+                continue  # 藏在托盘里, 页面反正看不见, 省掉每秒的推送
+            window.evaluate_js(f"window.pushSample({args})")
         except Exception:
             return  # 窗口已关闭
 
@@ -753,13 +959,19 @@ def main():
     # min_size: 把内容区钉在 1052×802 (设计稿尺寸), 不用再去量标题栏补差。窗口本身
     # 不会更大 (resizable=False), 挪窗口时也不会被改小。
     # on_top: 监控窗要一直看得见, 不能被别的窗口压到底下 (winforms 后端用 TopMost)。
+    # hidden/minimized: 启动时不弹窗, 直接进托盘 (见 tray.Tray 的 visible=False) ——
+    # 显示靠点托盘图标或菜单, 跟 --tray 无关, --tray 只额外管"不发气泡"。
+    # x/y: 一开始就摆在右下角 (和悬停弹窗同一个位置), 之后显示出来时就不用再挪 ——
+    # 不然会先在屏幕中间露一下再跳过去。
+    x, y = tray_mod.start_pos(*SIZE)
     window = webview.create_window(
         "Pulse", url=HTML.resolve().as_uri() + "#live", js_api=Api(),
         width=SIZE[0], height=SIZE[1], min_size=SIZE, resizable=False, on_top=True,
-        background_color="#DCE1D8", hidden=TRAY_ONLY, minimized=TRAY_ONLY,
+        background_color="#DCE1D8", hidden=True, minimized=True, x=x, y=y,
     )
     loaded, stop = threading.Event(), threading.Event()
-    tray = tray_mod.Tray(window, stop, SCRIPT, admin=ADMIN, tray_only=TRAY_ONLY, sensors=sensors)
+    tray = tray_mod.Tray(window, stop, SCRIPT, admin=ADMIN, tray_only=TRAY_ONLY,
+                         visible=False, sensors=sensors)  # visible=False: 窗口起始是隐藏的
     window.events.loaded += loaded.set
     window.events.closed += stop.set
     window.events.closing += tray.on_closing

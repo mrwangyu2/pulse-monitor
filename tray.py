@@ -175,6 +175,16 @@ def _place_over_tray(w, h):
     return right - width, bottom - height, width, height
 
 
+def start_pos(width, height):
+    """窗口该从哪儿露出来: 工作区右下角 —— 跟悬停弹窗摆的是同一个位置。
+
+    一开始就摆在那儿, 之后显示窗口 (悬停或点图标) 就不用再挪。否则窗口会先在屏幕中间
+    露一下、再跳到右下角, 看着就是闪一下。
+    """
+    x, y, _, _ = _place_over_tray(width, height)
+    return x, y
+
+
 def _icon_rect():
     """托盘图标的屏幕矩形; 拿不到就返回 None。
 
@@ -259,11 +269,13 @@ class Tray:
     """
 
     def __init__(self, window, stop, script, title="Pulse", hover=True,
-                 admin=True, tray_only=False, sensors=None):
+                 admin=True, tray_only=False, sensors=None, visible=False):
         self.window = window
         self.stop = stop
         self.script = script
-        self.visible = True  # 只有托盘菜单和关闭按钮会改它
+        # 窗口是隐藏着起来的 (见 pulse.main), 所以这里起始就是"没显示"。这个值只有托盘菜单、
+        # 悬停和关闭按钮会改 —— 说白了它得跟窗口的真实显隐一致, 不然第一次点图标会反过来。
+        self.visible = visible
         self.quitting = False
         self.hover_on = hover  # 「悬停显示窗口」开关, 菜单里可勾
         self.admin = admin  # 有没有管理员权限 (网络排行靠 ETW, 需要它)
@@ -451,8 +463,12 @@ class Tray:
             return
         x, y, w, h = _place_over_tray(w, h)
         try:
-            self.window.resize(w, h)
-            self.window.move(x, y)
+            self.window.restore()  # 窗口是 minimized 起的, 不还原的话 show() 出来还是最小化状态
+            # 窗口本来就摆在这儿 (start_pos 摆的) 就别再动它 —— 位置没变也发一次移动消息,
+            # 显示的一瞬间照样会闪。
+            if _window_rect(self.window) != (x, y, x + w, y + h):
+                self.window.resize(w, h)
+                self.window.move(x, y)
         except Exception:
             return
         self.window.show()
