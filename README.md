@@ -1,3 +1,5 @@
+**简体中文** | [English](README.en.md)
+
 # Pulse
 
 Windows 硬件监控小工具。跑本地 AI 的时候，最该盯着的就是这台机器：显存还剩多少、显卡有没有
