@@ -39,6 +39,7 @@ import atexit
 import ctypes
 import itertools
 import json
+import os
 import re
 import struct
 import subprocess
@@ -96,7 +97,7 @@ ADMIN = is_admin()
 # 标题栏里要显示的名字/邮箱。改这里就行, 不用动 HTML。
 # 标题其余部分 (CPU 型号、显卡、内存) 都是启动时从本机读的, 见 _live_title。
 APP_NAME = "Pulse"
-APP_VERSION = "v1.0.0"
+APP_VERSION = "v1.0.1"
 APP_AUTHOR = "wangyuxxx@gmail.com"
 
 
@@ -979,7 +980,10 @@ def main():
     threading.Thread(target=_net.read, daemon=True).start()  # 提前开始抓包, 首次点开排行才有数据
     tray.start()  # 要在 webview.start() 之前: 后端要求先进消息循环, 之后设图标是不生效的
     try:
-        webview.start(lambda: sample_loop(window, loaded, stop, tray), icon=str(tray_mod.ICON))
+        # private_mode 默认开启, localStorage 退出即丢; 关掉并指定目录, 语言选择才能跨次启动保留
+        store = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "Pulse" / "webview"
+        webview.start(lambda: sample_loop(window, loaded, stop, tray), icon=str(tray_mod.ICON),
+                      private_mode=False, storage_path=str(store))
     finally:
         tray.on_closed()
 
