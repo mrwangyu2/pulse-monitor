@@ -109,11 +109,11 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 .hit:active{transform:translateY(0);box-shadow:0 0 0 1px var(--ink) inset}
 .hit{transition:border-color .15s,box-shadow .15s,background .15s,transform .15s}
 .cpucol .head>span:last-child{display:none}
-.cpucol .head::after{content:"前10进程  ›";font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
+.cpucol .head::after{content:var(--top10);font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
 .gh b::after{content:none}
 .gh{flex-wrap:wrap;align-items:center;row-gap:3px}
 .gh b{flex:1}
-.gh::after{content:"前10进程  ›";order:2;font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
+.gh::after{content:var(--top10);order:2;font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;white-space:nowrap;text-transform:none;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 10px 5px 11px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
 .gh span{order:3;flex-basis:100%;white-space:nowrap}
 .hit:hover .gh::after,.hit:focus-visible .gh::after{background:var(--ink);color:var(--card);border-color:var(--ink)}
 .gm{margin-top:10px}
@@ -185,7 +185,7 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 .clg i{display:inline-block;width:12px;height:2px;vertical-align:middle;margin-right:5px}
 .clg span:last-child{margin-left:auto}
 .stats.s4{display:grid;grid-template-columns:1fr 1fr;gap:8px 0}
-.ih::after{content:"前10进程  ›";flex:none;font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.04em;white-space:nowrap;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 9px 5px 10px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
+.ih::after{content:var(--top10);flex:none;font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.04em;white-space:nowrap;color:var(--ink);border:1px solid var(--soft);border-radius:999px;padding:5px 9px 5px 10px;background:rgba(255,255,255,.35);transition:background .15s,color .15s,border-color .15s}
 .ih small{margin-left:auto;letter-spacing:0}
 .dcap{margin-left:auto;display:flex;flex-direction:column;gap:3px;font-size:10px;line-height:11px;letter-spacing:0;white-space:nowrap;color:var(--soft)}
 .ih .dcap b{font-size:10px;font-weight:600;letter-spacing:0;color:var(--ink)}
@@ -217,9 +217,60 @@ body{padding:14px}
 .cpucol .stats.s4 b{font-size:12px;margin-top:2px;line-height:1.1}
 .gsum div{padding-left:12px}
 .gsum b{font-size:16px}
+.sys{flex:none;display:grid;grid-template-columns:196px minmax(0,1fr);gap:22px;align-items:center;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:8px 22px;height:76px}
+.sys .sl{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sys .sl label{display:flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.1em;color:var(--soft);white-space:nowrap}
+.sys .sl label svg{flex:none}
+.sys .sn{display:flex;align-items:baseline;gap:6px;font-family:"Big Shoulders Display",sans-serif;font-weight:800;line-height:.9;font-variant-numeric:tabular-nums}
+.sys .sn b{font-size:38px;font-weight:800;letter-spacing:-.005em;padding:2px 8px 0;margin:0 -2px 0 0;background:#D9482B;color:var(--card);border-radius:3px}
+.sys .sn u{text-decoration:none;font-size:18px;font-weight:600;color:var(--ink)}
+.sys .sn small{margin-left:auto;font:400 10px "IBM Plex Mono","Microsoft YaHei",monospace;color:var(--soft);white-space:nowrap}
+.sys .sr{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sys .sbar{display:flex;height:10px;gap:2px;border-radius:1px;overflow:hidden}
+.sys .sbar i{display:block;height:100%;min-width:2px;transition:width .6s}
+.sys .sleg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 10px}
+.sys .sleg div{display:flex;align-items:baseline;gap:6px;font-size:10.5px;color:var(--soft);white-space:nowrap;min-width:0}
+.sys .sleg i{flex:none;width:8px;height:8px;border-radius:1px;align-self:center}
+.sys .sleg b{font-weight:500;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.sys .sleg em{font-style:normal;font-size:10px;color:var(--soft)}
+:root{--top10:"前10进程  ›"}
+:root[data-lang=en]{--top10:"Top 10  ›"}
+.sys{position:relative}
+.lang{position:absolute;top:3px;right:6px;display:flex;border:1px solid var(--rule);border-radius:4px;overflow:hidden;z-index:2}
+.lang button{font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;padding:2px 6px;background:none;border:0;color:var(--soft);cursor:pointer}
+.lang button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+.lang button:focus-visible{outline:2px solid var(--usage);outline-offset:-2px}
 </style></head><body>
+<script>
+(function(){
+  var D={'整机总功耗':'Total system power','内存':'Memory','硬盘':'Disk','主板':'Board',
+  'GPU 数量':'GPU count','张在线':'online','平均 CUDA':'Avg CUDA','显存合计':'Total VRAM','GPU 功耗':'GPU power','最高温度':'Max temp',
+  'CUDA 使用率':'CUDA usage','核心负载':'Core load','显存使用率':'VRAM usage','温度':'Temp','降频线 95°C':'Throttle 95°C','功耗':'Power','显存':'VRAM',
+  '-60s → 现在 · 0–100%':'-60s → now · 0–100%','使用率·温度':'Usage · Temp','使用率':'Usage','使用率 0–100%':'Usage 0–100%','温度 30–110°C':'Temp 30–110°C','-60s → 现在':'-60s → now',
+  '线程使用率':'Thread usage','44 线程':'44 threads','平均使用率':'Avg usage','峰值使用率':'Peak usage','平均温度':'Avg temp','峰值温度':'Peak temp',
+  '内存使用率':'Memory usage','已用':'Used','可用':'Free','总量':'Total','磁盘读写':'Disk I/O','容量':'Cap.','读取':'Read','写入':'Write','网络流量':'Network','下载':'Download','上传':'Upload',
+  '磁盘容量:已用 1.43 TB,剩余 0.57 TB,共 2 TB (NVMe SSD)':'Disk capacity: 1.43 TB used, 0.57 TB free, 2 TB total (NVMe SSD)',
+  '各 CPU 线程使用率竖条图':'Per-thread CPU usage bar chart','查看占用最高的10个进程':'View top 10 processes','关闭':'Close',
+  '峰值':'Peak','60s 峰值':'60s peak','线程':'Thread','TOP 10 · 每秒刷新':'TOP 10 · refreshed every second','进程名称':'Process',
+  'CPU 占用最高的 10 个进程':'Top 10 processes by CPU','内存占用最高的 10 个进程':'Top 10 processes by memory','显存占用最高的 10 个进程':'Top 10 processes by VRAM',
+  '磁盘读写最高的 10 个进程':'Top 10 processes by disk I/O','网络流量最高的 10 个进程':'Top 10 processes by network traffic'};
+  var saved=null;try{saved=localStorage.getItem('hwm-lang')}catch(e){}
+  var L=window.L={D:D,lang:saved==='en'?'en':'zh'};
+  L.en=L.lang==='en';
+  /* t('峰值 ') keeps surrounding whitespace so callers can concatenate */
+  L.t=function(s){if(!L.en)return s;var k=s.trim();return D.hasOwnProperty(k)?s.replace(k,D[k]):s};
+})();
+</script>
 <div class="dash">
 <main class="gview" id="vGpu">
+  <div class="sys" id="sysPw" role="group" aria-label="整机总功耗">
+    <div class="lang" role="group" aria-label="Language / 语言"><button type="button" data-l="zh" aria-pressed="true">中文</button><button type="button" data-l="en" aria-pressed="false">EN</button></div>
+    <div class="sl"><label><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>整机总功耗</label><div class="sn"><b id="sysNum">0</b><u>W</u><small id="sysPk">峰值 -- W</small></div></div>
+    <div class="sr">
+      <div class="sbar" id="sysBar"><i style="background:#2FB58A;width:20%"></i><i style="background:#1B2421;width:60%"></i><i style="background:#8E9A92;width:5%"></i><i style="background:#D9482B;width:3%"></i><i style="background:#B9C1B6;width:12%"></i></div>
+      <div class="sleg" id="sysLeg"></div>
+    </div>
+  </div>
   <div class="gsum" id="gSum"><div>GPU 数量<b>2 <small>张在线</small></b></div><div>平均 CUDA<b>80<small>%</small></b></div><div>显存合计<b>34.1 <small>/ 48 GB</small></b></div><div>最高温度<b>80<small>°C · GPU 0</small></b></div></div>
   <div class="ggrid" id="gGrid">
 <section class="gc"><div class="gh"><b><span class="cpuchip gpuchip"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="17" height="11" rx="1.5"/><circle cx="10.5" cy="11.5" r="3"/><path d="M19 9h3M19 14h3M5 17v3M9 17v3"/></svg>GPU</span>0</b><span>NVIDIA RTX 4090 · 24 GB</span></div><div class="gm"><div class="cuda"><label>CUDA 使用率</label><div class="gn"><span data-k="c">88</span><u>%</u></div><div class="bar"><i data-k="cb" style="width:88%"></i></div><div class="sub">核心负载</div></div><div class="vram"><label>显存使用率</label><div class="gn"><span data-k="vp">78</span><u>%</u></div><div class="bar"><i data-k="vb" style="width:78%"></i></div><div class="sub" data-k="vs">18.7 / 24 GB</div></div><div class="gtemp"><label>温度</label><div class="gn"><span data-k="t">80</span><u>°C</u></div><div class="bar"><i data-k="tb" style="width:62%"></i></div><div class="sub">降频线 95°C</div></div></div><div class="gchart"><svg viewBox="0 0 300 100" preserveAspectRatio="none"><line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/><path data-k="ca" fill="#1F5C52" fill-opacity=".13" d="M0 30 L50 22 L100 18 L150 26 L200 14 L250 12 L300 12 L300 100 L0 100Z"/><path data-k="cl" fill="none" stroke="#1F5C52" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 30 L50 22 L100 18 L150 26 L200 14 L250 12 L300 12"/><path data-k="vl" fill="none" stroke="#1B2421" stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke" d="M0 26 L100 24 L200 23 L300 22"/></svg><div class="lg"><span><i style="background:#1F5C52"></i>CUDA</span><span><i style="background:#1B2421"></i>显存</span><span>-60s → 现在 · 0–100%</span></div></div></section>
@@ -402,7 +453,7 @@ body{padding:14px}
       '<div>GPU 数量<b>'+gpus.length+' <small>张在线</small></b></div>'
       +'<div>平均 CUDA<b>'+Math.round(sumC/gpus.length)+'<small>%</small></b></div>'
       +'<div>显存合计<b>'+sumV.toFixed(1)+' <small>/ '+tot+' GB</small></b></div>'
-      +'<div>总功耗<b>'+Math.round(sumP)+' <small>/ '+gpus.length*450+' W</small></b></div>'
+      +'<div>GPU 功耗<b>'+Math.round(sumP)+' <small>/ '+gpus.length*450+' W</small></b></div>'
       +'<div>最高温度<b>'+Math.round(hot)+'<small>°C · GPU '+hi+'</small></b></div>';
   }
   render();
@@ -542,8 +593,80 @@ body{padding:14px}
     el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open(conf(el),el)}});
   });
   pm.addEventListener('click',function(e){if(e.target===pm)close()});
+  /* 整机总功耗 = CPU Package + GPU + 内存 + 硬盘 + 主板(各项对应 LibreHardwareMonitor 的 Power 传感器;内存/硬盘/主板为模拟估算) */
+  (function(){
+    var $=function(i){return document.getElementById(i)};
+    var P=[['CPU','#2FB58A'],['GPU','#1B2421'],['内存','#8E9A92'],['硬盘','#D9482B'],['主板','#B9C1B6']];
+    var hist=[],bar=$('sysBar'),leg=$('sysLeg');
+    bar.innerHTML=P.map(function(p){return '<i style="background:'+p[1]+'"></i>'}).join('');
+    leg.innerHTML=P.map(function(p){return '<div><i style="background:'+p[1]+'"></i>'+p[0]+'<b>0</b><em>W</em></div>'}).join('');
+    function n(id){return parseFloat($(id).textContent)||0}
+    function tick(){
+      var cpu=n('pNum'),gpu=0;
+      [].forEach.call(document.querySelectorAll('#gGrid [data-k=pw]'),function(e){gpu+=parseFloat(e.textContent)||0});
+      var ram=5+n('mUsed')/64*11;
+      var io=n('dR')+n('dW');
+      var disk=1.3+Math.min(1,io/900)*5.2;
+      var mb=26+cpu/253*9+gpu/900*5;
+      var v=[cpu,gpu,ram,disk,mb],tot=v.reduce(function(a,b){return a+b},0);
+      hist.push(tot);if(hist.length>60)hist.shift();
+      $('sysNum').textContent=Math.round(tot);
+      $('sysPk').textContent='60s 峰值 '+Math.round(Math.max.apply(null,hist))+' W';
+      [].forEach.call(bar.children,function(e,i){e.style.width=(v[i]/tot*100).toFixed(1)+'%'});
+      [].forEach.call(leg.children,function(e,i){e.querySelector('b').textContent=Math.round(v[i])});
+    }
+    tick();setInterval(tick,1000);
+  })();
   document.getElementById('pClose').addEventListener('click',close);
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!pm.hidden)close()});
+})();
+</script>
+<script>
+/* i18n: 中文 ⇄ English. Chinese is the source text; English is applied as a live overlay so the 1s data refresh stays translated. */
+(function(){
+  var D=L.D,root=document.documentElement;
+  var X={'硬件监控':'Hardware Monitor','作者':'by','每秒采样':'sampled every second','模拟数据':'simulated data',
+  '按 CPU 占用降序':'Sorted by CPU usage','按内存占用降序':'Sorted by memory usage','按显存占用降序':'Sorted by VRAM usage','总使用率':'Total usage',
+  '合计降序':' combined, descending','条形为合计占比':'bars show share of total','按':'Sorted by ','模拟估算':'estimated',
+  ' 线程':' threads','线程 ':'Thread ','线程':'Thread','张在线':'online','内存':'Memory','每秒刷新':'refreshed every second','进程':'processes'};
+  var keys,map=new WeakMap(),amap=new WeakMap();
+  Object.keys(X).forEach(function(k){D[k]=X[k]});
+  /* single-word bits that must not be matched inside longer phrases are covered by longest-first ordering */
+  keys=Object.keys(D).sort(function(a,b){return b.length-a.length});
+  function tx(s){if(!/[\u3000-\u9fff]/.test(s))return s;keys.forEach(function(k){if(s.indexOf(k)>-1)s=s.split(k).join(D[k])});return s}
+  function txt(n){
+    var r=map.get(n);
+    if(!L.en){if(r&&n.data===r.en)n.data=r.zh;map.delete(n);return}
+    if(r&&n.data===r.en)return;
+    var en=tx(n.data);map.set(n,{zh:n.data,en:en});if(en!==n.data)n.data=en;
+  }
+  function attr(el,a){
+    var m=amap.get(el)||{};var r=m[a],v=el.getAttribute(a);if(v==null)return;
+    if(!L.en){if(r&&v===r.en)el.setAttribute(a,r.zh);delete m[a];return}
+    if(r&&v===r.en)return;
+    var en=tx(v);m[a]={zh:v,en:en};amap.set(el,m);if(en!==v)el.setAttribute(a,en);
+  }
+  function all(){
+    mo.disconnect();
+    var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null),n,list=[];
+    while(n=w.nextNode()){var p=n.parentNode.nodeName;if(p==='SCRIPT'||p==='STYLE')continue;if(n.parentNode.closest&&n.parentNode.closest('.lang'))continue;list.push(n)}
+    list.forEach(txt);
+    [].forEach.call(document.querySelectorAll('[title],[aria-label]'),function(el){if(el.closest('.lang'))return;attr(el,'title');attr(el,'aria-label')});
+    watch();
+  }
+  var mo=new MutationObserver(function(){if(L.en)all()});
+  function watch(){mo.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label']})}
+  function set(lang){
+    L.en=lang==='en';L.lang=lang;
+    root.setAttribute('data-lang',lang);root.setAttribute('lang',L.en?'en':'zh-CN');
+    [].forEach.call(document.querySelectorAll('.lang button'),function(b){b.setAttribute('aria-pressed',b.dataset.l===lang?'true':'false')});
+    try{localStorage.setItem('hwm-lang',lang)}catch(e){}
+    all();
+  }
+  [].forEach.call(document.querySelectorAll('.lang button'),function(b){
+    b.addEventListener('click',function(e){e.stopPropagation();set(b.dataset.l)});
+  });
+  set(L.lang);
 })();
 </script>
 </body></html>
