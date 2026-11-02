@@ -281,6 +281,9 @@ class Tray:
         self.admin = admin  # 有没有管理员权限 (网络排行靠 ETW, 需要它)
         self.tray_only = tray_only  # --tray 起的: 静默进托盘, 不发气泡
         self.sensors = sensors  # 启动时温度传感器的状态, 见 lhm.ensure
+        self.lang = "zh"  # 界面语言: 中文 / en。真正生效的是页面里的 i18n, 这里只给菜单勾选和补推用
+        self._lang_synced = False  # 有没有从页面 localStorage 读回过上次的选择
+        self._lang_applied = True  # 页面自己会按 localStorage 初始化; 只有菜单切失败时才要补推
         self._lines = [title, ""]
         self._click = 0.0
         self.icon = None
@@ -316,6 +319,10 @@ class Tray:
         return pystray.Menu(
             pystray.MenuItem("显示窗口", self.toggle, checked=self._is_visible, default=True),
             pystray.MenuItem("悬停显示窗口", self._toggle_hover, checked=self._is_hover),
+            pystray.MenuItem("语言 / Language", pystray.Menu(
+                pystray.MenuItem("中文", self._use_zh, checked=lambda _: self.lang == "zh", radio=True),
+                pystray.MenuItem("English", self._use_en, checked=lambda _: self.lang == "en", radio=True),
+            )),
             pystray.MenuItem("以管理员身份重新启动", self.restart_elevated,
                              visible=self._can_elevate),
             pystray.MenuItem(self._sensor_label, self.install_sensors,
@@ -436,6 +443,8 @@ class Tray:
             self.show()
 
     def show(self):
+        self.sync_lang()  # 托盘菜单的勾选跟着页面里的选择走
+        self._apply_lang()  # 之前菜单切换没接住的, 现在补上
         self._hover_fired = False  # 手动显示, 鼠标离开不该把它收走
         self.window.restore()  # 从任务栏最小化状态也要能回来
         self.window.show()
@@ -455,6 +464,8 @@ class Tray:
         """
         if self.visible or not self.hover_on:
             return
+        self.sync_lang()  # 悬停时也顺手把语言勾选对齐 (启动时窗口藏着, evaluate_js 可能没读成)
+        self._apply_lang()  # 之前菜单里切的语言如果没推成功, 悬停显示时补上
         try:
             w, h = self.window.width, self.window.height
         except Exception:
@@ -474,7 +485,6 @@ class Tray:
         self.window.show()
         self.visible = True
         self._hover_fired = True
-
     def _hide_hover(self):
         """悬停离开: 只收悬停弹出来的那个窗口。
 
@@ -545,6 +555,51 @@ class Tray:
         if not self.hover_on:
             self._hide_hover()
 
+    # --- 语言 ---
+
+    def _use_zh(self, _icon=None, _item=None):
+        self.set_lang("zh")
+
+    def _use_en(self, _icon=None, _item=None):
+        self.set_lang("en")
+
+    def set_lang(self, lang):
+        """托盘菜单切语言: 页面里的 i18n 立刻换, 并写进 localStorage (页面的 set() 负责), 下次启动沿用。"""
+        self.lang = lang
+        try:
+            self.window.evaluate_js(f"window.setLang && window.setLang('{lang}')")
+            self._lang_applied = True
+        except Exception:
+            self._lang_applied = False  # 页面还没起来 / 窗口正忙, 显示窗口时再补推
+        self._refresh_menu()
+
+    def sync_lang(self):
+        """从页面的 localStorage 读回上次的语言, 让菜单勾选和界面对上。
+
+        页面自己在加载时就按 localStorage 切好了语言, 这里只同步菜单状态。窗口还没
+        显示时 evaluate_js 不保险, 读不到就保持默认 —— show() 里还会再试一次。
+        """
+        if self._lang_synced:
+            return
+        try:
+            value = self.window.evaluate_js("localStorage.getItem('hwm-lang') || 'zh'")
+        except Exception:
+            return
+        self._lang_synced = True
+        if value in ("zh", "en") and value != self.lang:
+            self.lang = value
+            self._refresh_menu()
+
+    def _apply_lang(self):
+        """菜单切换那次如果页面没接住, 显示窗口时再推一次。"""
+        if self._lang_applied:
+            return
+        try:
+            self.window.evaluate_js(f"window.setLang && window.setLang('{self.lang}')")
+            self._lang_applied = True
+        except Exception:
+            pass
+
     # --- 开机自启 ---
 
     def _is_autostart(self, _item=None):
@@ -559,9 +614,10 @@ class Tray:
     # --- tooltip ---
 
     def update(self, usage, mem, gpus):
+        en = self.lang == "en"  # tooltip 跟着托盘菜单里选的语言走
         lines = ["CPU " + _pct(usage)]
         if mem and mem.get("total"):
-            lines[0] += "  ·  内存 " + _pct(mem["used"] / mem["total"] * 100)
+            lines[0] += ("  ·  memory " if en else "  ·  内存 ") + _pct(mem["used"] / mem["total"] * 100)
         if gpus:
             cuda = [g["cuda"] for g in gpus if g.get("cuda") is not None]
             temp = [g["temp"] for g in gpus if g.get("temp") is not None]
@@ -572,9 +628,10 @@ class Tray:
                 part.append(f"{round(max(temp))}°C")
             lines.append(" · ".join(part))
         else:
-            lines.append("未检测到 GPU")
+            lines.append("No GPU detected" if en else "未检测到 GPU")
         if not self.admin:
-            lines.append("无管理员权限 · 网络排行不可用")
+            lines.append("No admin rights · network ranking unavailable" if en
+                         else "无管理员权限 · 网络排行不可用")
         if lines == self._lines:
             return
         self._lines = lines

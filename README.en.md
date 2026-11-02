@@ -32,6 +32,7 @@ Pulse can't read GPU state by itself — it relies on two external programs:
 | GPU utilization / temperature / power | [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor)'s web server (`localhost:8085`) |
 | GPU numbering, power limit | `nvidia-smi` (ships with the NVIDIA driver) |
 | GPU VRAM in use | Windows' `GPU Adapter Memory` counters |
+| NVLink links / throughput | `nvidia-smi nvlink` (`-s`/`-p` for topology, `-gt d` for the counters) |
 | CPU temperature / package power | LibreHardwareMonitor |
 | Top 10 network processes | ETW kernel log (`pywintrace`) |
 
@@ -40,7 +41,12 @@ Pulse can't read GPU state by itself — it relies on two external programs:
   temperature cells stay blank (GPU temperature falls back to what `nvidia-smi` reports). Its
   manifest is `requireAdministrator`, so Pulse launching it always triggers a UAC prompt.
 - **`nvidia-smi`** comes with the NVIDIA driver — nothing extra to install. On a machine with no
-  NVIDIA GPU or driver, the GPU panel has no data.
+  NVIDIA GPU or driver, the GPU panel has no data. The NVLink card uses it too: link count and
+  per-link speed and version come from `nvlink -s` / `-p` / `-info`, throughput from the
+  `nvlink -gt d` counters — **many Windows drivers report N/A for those** (consumer cards
+  especially), in which case the topology and theoretical bandwidth still show and the peak
+  slot reads "counters unavailable" rather than a fake zero. GPUs without NVLink (an RTX 4090,
+  say) hide the card entirely.
 - **Administrator rights**: the network ranking uses the ETW kernel log; without them that one panel
   is empty (the tray notifies you, and the menu can restart Pulse elevated).
 
@@ -129,7 +135,7 @@ The UI is entirely determined by `pulse.html`; `pulse.py` only samples once a se
 the page:
 
 ```js
-window.pushSample(usage, temp, gpus, mem, io, power, threads, disk)
+window.pushSample(usage, temp, gpus, mem, io, power, threads, disk, nvlink, uptime)
 ```
 
 `None` means that item has no data right now. **New design = new HTML file.**

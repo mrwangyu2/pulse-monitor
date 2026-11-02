@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
-<title>硬件监控 v1.0.1 · 作者 wangyuxxx@gmail.com — Intel Xeon E5-2699 v4 · NVIDIA RTX 4090 × 2 · 内存 64 GB · 每秒采样 · 模拟数据</title>
+<title>硬件监控 v1.0.3 · 作者 wangyuxxx@gmail.com — Intel Xeon E5-2699 v4 · NVIDIA RTX 4090 × 2 · 内存 64 GB · 每秒采样 · 模拟数据</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -147,6 +147,14 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 .gn{height:38px;margin-top:6px}.gn span{font-size:42px}.gn u{font-size:15px;margin-top:3px}
 .bar{margin-top:7px}
 .gchart{margin-top:8px}
+.nvl{flex:none;height:50px;display:grid;grid-template-columns:minmax(0,1fr);align-items:center;background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:8px 16px;min-height:0;transition:height .22s ease}
+.nvl .nh{display:flex;flex-direction:row;align-items:center;gap:12px;min-width:0}
+.nvl .nh .t1{display:flex;align-items:center;gap:8px;min-width:0}
+.nvl .cpuchip{font-size:10px;padding:3px 6px 3px 5px;gap:4px;flex:none}
+.nvl .nh b{font-size:14px;font-weight:500;letter-spacing:.06em;color:var(--ink);white-space:nowrap}
+.nvl .nh small{font-size:9.5px;letter-spacing:.04em;line-height:1.25;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nvl .nh>small{flex:none;padding-left:12px;border-left:1px solid var(--rule)}
+.nvl .nh>small.pk{margin-left:auto}
 .iogrid{flex:none;height:112px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ic{background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:10px 16px 10px;display:grid;grid-template-columns:176px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:6px 14px;min-height:0}
 .ih{grid-column:1/3;display:flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.08em;color:var(--soft)}
@@ -214,7 +222,7 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 .gsum div{padding-left:12px}
 .gsum b{font-size:16px}
 .dash{gap:12px}
-.sys{flex:none;display:grid;grid-template-columns:196px minmax(0,1fr);gap:22px;align-items:center;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:8px 22px;height:76px}
+.sys{flex:none;display:grid;grid-template-columns:196px minmax(0,1fr);gap:22px;align-items:center;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:8px 22px;height:90px}
 .sys .sl{display:flex;flex-direction:column;gap:3px;min-width:0}
 .sys .sl label{display:flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.1em;color:var(--soft);white-space:nowrap}
 .sys .sl label svg{flex:none}
@@ -222,6 +230,8 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 .sys .sn b{font-size:38px;font-weight:800;letter-spacing:-.005em;padding:2px 8px 0;margin:0 -2px 0 0;background:#D9482B;color:var(--card);border-radius:3px}
 .sys .sn u{text-decoration:none;font-size:18px;font-weight:600;color:var(--ink)}
 .sys .sn small{margin-left:auto;font:400 10px "IBM Plex Mono","Microsoft YaHei",monospace;color:var(--soft);white-space:nowrap}
+.sys .su{display:flex;align-items:baseline;gap:8px;white-space:nowrap;font-size:10.5px;letter-spacing:.1em;color:var(--soft);margin-top:1px}
+.sys .su b{font-family:"IBM Plex Mono","Microsoft YaHei",monospace;font-weight:500;font-size:13px;letter-spacing:.02em;color:var(--ink);font-variant-numeric:tabular-nums}
 .sys .sr{display:flex;flex-direction:column;gap:8px;min-width:0}
 .sys .sbar{display:flex;height:10px;gap:2px;border-radius:1px;overflow:hidden}
 .sys .sbar i{display:block;height:100%;min-width:2px;transition:width .6s}
@@ -235,14 +245,11 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 :root[data-lang=en]{--top10:"Top 10  ›"}
 :root[data-lang=en] .cpucol .panel .cpuhead b{text-transform:none;letter-spacing:0;gap:6px;font-size:13px}
 .sys{position:relative}
-.lang{position:absolute;top:3px;right:6px;display:flex;border:1px solid var(--rule);border-radius:4px;overflow:hidden;z-index:2}
-.lang button{font:500 10px/1 "IBM Plex Mono","Microsoft YaHei",monospace;letter-spacing:.06em;padding:2px 6px;background:none;border:0;color:var(--soft);cursor:pointer}
-.lang button[aria-pressed=true]{background:var(--ink);color:var(--card)}
-.lang button:focus-visible{outline:2px solid var(--usage);outline-offset:-2px}
+/* 语言 (中文 / EN) 只从托盘右键菜单切换 (tray.py 调 window.setLang), 窗口里不再放按钮。 */
 </style></head><body>
 <script>
 (function(){
-  var D={'整机总功耗':'Total system power','内存':'Memory','硬盘':'Disk','主板':'Board',
+  var D={'整机总功耗':'Total system power','持续开机':'Uptime','天':'d','内存':'Memory','硬盘':'Disk','主板':'Board',
   'GPU 数量':'GPU count','张在线':'online','平均 CUDA':'Avg CUDA','显存合计':'Total VRAM','GPU 功耗':'GPU power','最高温度':'Max temp',
   'CUDA 使用率':'CUDA usage','核心负载':'Core load','显存使用率':'VRAM usage','温度':'Temp','降频线 95°C':'Throttle 95°C','功耗':'Power','显存':'VRAM',
   '-60s → 现在 · 0–100%':'-60s → now · 0–100%','使用率·温度':'Usage · Temp','使用率':'Usage','使用率 0–100%':'Usage 0–100%','温度 30–110°C':'Temp 30–110°C','-60s → 现在':'-60s → now',
@@ -263,8 +270,7 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 <div class="dash">
 <main class="gview" id="vGpu">
   <div class="sys" id="sysPw" role="group" aria-label="整机总功耗">
-    <div class="lang" role="group" aria-label="Language / 语言"><button type="button" data-l="zh" aria-pressed="true">中文</button><button type="button" data-l="en" aria-pressed="false">EN</button></div>
-    <div class="sl"><label><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>整机总功耗</label><div class="sn"><b id="sysNum">--</b><u>W</u><small id="sysPk">60s 峰值 -- W</small></div></div>
+    <div class="sl"><label><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>整机总功耗</label><div class="sn"><b id="sysNum">--</b><u>W</u><small id="sysPk">60s 峰值 -- W</small></div><div class="su"><span>持续开机</span><b id="sysUp">--</b></div></div>
     <div class="sr">
       <div class="sbar" id="sysBar"></div>
       <div class="sleg" id="sysLeg"></div>
@@ -273,6 +279,13 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
   <div class="gsum" id="gSum"></div>
   <div class="ggrid" id="gGrid"></div>
   <div class="gempty" id="gEmpty" hidden></div>
+  <section class="nvl" id="iNvl" hidden aria-label="NVLink 互联速率">
+    <div class="nh">
+      <div class="t1"><span class="cpuchip"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.4"/><circle cx="19" cy="12" r="2.4"/><path d="M7.4 12h9.2M12 9.6V6.4M12 14.4v3.2"/></svg>NVLINK</span><b id="nvName">--</b></div>
+      <small id="nvSpec">--</small>
+      <small class="pk">理论 <span id="nvCap">--</span> GB/s · <span id="nvTail">峰值 -- GB/s</span></small>
+    </div>
+  </section>
   <div class="iogrid" id="ioGrid">
     <section class="ic" id="iDisk">
       <div class="ih"><span class="cpuchip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>DISK</span><b>磁盘读写</b><small id="dMax">峰值 -- MB/s</small><span class="dcap" id="dCap" hidden><span id="dCapTx"></span><i><em id="dCapBar" style="width:0"></em></i></span></div>
@@ -280,8 +293,8 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
       <div class="ig"><svg viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/><path id="dRa" fill="#1F5C52" fill-opacity=".13"/><path id="dRl" fill="none" stroke="#1F5C52" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path id="dWl" fill="none" stroke="#1B2421" stroke-width="1.2" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg></div>
     </section>
     <section class="ic" id="iNet">
-      <div class="ih"><span class="cpuchip" style="background:var(--heat)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4v16M8 20l-3-3M8 20l3-3M16 20V4M16 4l-3 3M16 4l3 3"/></svg>NET</span><b>网络流量</b><small id="nMax">峰值 -- Mbps</small></div>
-      <div class="im"><div class="a"><label>下载</label><div class="gn"><span id="nD">0</span><u>Mbps</u></div></div><div class="b"><label>上传</label><div class="gn"><span id="nU">0</span><u>Mbps</u></div></div></div>
+      <div class="ih"><span class="cpuchip" style="background:var(--heat)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4v16M8 20l-3-3M8 20l3-3M16 20V4M16 4l-3 3M16 4l3 3"/></svg>NET</span><b>网络流量</b><small id="nMax">峰值 -- MBps</small></div>
+      <div class="im"><div class="a"><label>下载</label><div class="gn"><span id="nD">0</span><u>MBps</u></div></div><div class="b"><label>上传</label><div class="gn"><span id="nU">0</span><u>MBps</u></div></div></div>
       <div class="ig"><svg viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="50" x2="300" y2="50" stroke="#B9C1B6" stroke-dasharray="3 5" vector-effect="non-scaling-stroke"/><path id="nDa" fill="#1F5C52" fill-opacity=".13"/><path id="nDl" fill="none" stroke="#1F5C52" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><path id="nUl" fill="none" stroke="#1B2421" stroke-width="1.2" stroke-dasharray="4 3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg></div>
     </section>
   </div>
@@ -327,14 +340,16 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
 </main>
 </div>
 <script>
-/* 宿主(Python)每秒调用 window.pushSample(usage, temp, gpus, mem, io, power, threads):
+/* 宿主(Python)每秒调用 window.pushSample(usage, temp, gpus, mem, io, power, threads, disk, nvlink, uptime):
      usage / temp : CPU 使用率(%) 与温度(°C), null 表示暂无数据
      mem          : {used(GB), total(GB)}, null 表示暂无数据
-     io           : {dr, dw (磁盘读/写 MB/s), nd, nu (网络下/上行 Mbps)}, null 表示暂无数据
+     io           : {dr, dw (磁盘读/写 MB/s), nd, nu (网络下/上行 MBps)}, null 表示暂无数据
      gpus         : [{name, total(GB), cuda(%), used(GB), temp(°C), power(W), limit(W)}, ...], 某项为 null 表示暂无数据
      power        : CPU 封装功耗(W), null 表示暂无数据
      threads      : 每个逻辑核的使用率(%) 数组 (长度=线程数), null/空 表示暂无数据
      disk         : {used(GB), total(GB), label("NVMe SSD" 之类)}, null 表示暂无数据
+     nvlink       : {label, gen, links, speed, cap, peak, probe}, 没有 NVLink 时为 null
+     uptime       : 本次开机到现在的秒数, null 表示暂无数据
    地址带 #live 时不跑模拟数据, 直接等待宿主推送; 单独用浏览器打开则仍是模拟数据。 */
 (function(){
   var N=60,live=location.hash==='#live',got=false;
@@ -531,7 +546,7 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
     ioDraw(io.dr,io.dw,'dRl','dRa','dWl');ioDraw(io.nd,io.nu,'nDl','nDa','nUl');
     var dm=mx(io.dr.h.concat(io.dw.h)),nm=mx(io.nd.h.concat(io.nu.h));
     $('dMax').textContent='峰值 '+ioFmt(dm)+' MB/s';
-    $('nMax').textContent='峰值 '+ioFmt(nm)+' Mbps';
+    $('nMax').textContent='峰值 '+ioFmt(nm)+' MBps';
     renderDisk();
     renderSys();
   }
@@ -539,10 +554,20 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
   /* ---------- 整机总功耗 ----------
      CPU = 封装功耗, GPU = 各卡功耗之和, 都是实测; 内存/硬盘/主板没有可靠的传感器, 按负载估算 (和画布一致)。
      CPU 和 GPU 都读不到时整块显示 "--", 免得只剩估算值冒充实测。 */
-  var SYS=[['CPU','#2FB58A'],['GPU','#1B2421'],['内存','#8E9A92'],['硬盘','#D9482B'],['主板','#B9C1B6']],sysHist=[];
+  var SYS=[['CPU','#2FB58A'],['GPU','#1B2421'],['内存','#3E7699'],['硬盘','#D9482B'],['主板','#C99A2E']],sysHist=[];
   $('sysBar').innerHTML=SYS.map(function(x){return '<i style="background:'+x[1]+'"></i>'}).join('');
   $('sysLeg').innerHTML=SYS.map(function(x,i){return '<div'+(i>1?' title="估算值"':'')+'><i style="background:'+x[1]+'"></i>'+x[0]+'<b>--</b><em>W</em></div>'}).join('');
+  /* 持续开机:宿主每秒推一次 up (psutil 的 boot_time 差值); 浏览器预览从 12 天前开始模拟 */
+  var upSec=null,upBoot=Date.now()-(12*86400+6*3600+41*60+9)*1000;
+  function pad2(v){return v<10?'0'+v:''+v}
+  function renderUptime(){
+    var s=upSec!=null?upSec:(live?null:Math.floor((Date.now()-upBoot)/1000));
+    if(s==null){$('sysUp').textContent='--';return}
+    var d=Math.floor(s/86400);
+    $('sysUp').textContent=(d?d+L.t(' 天 '):'')+pad2(Math.floor(s%86400/3600))+':'+pad2(Math.floor(s%3600/60))+':'+pad2(s%60);
+  }
   function renderSys(){
+    renderUptime();
     var gpu=null,gmax=0,bars=$('sysBar').children,legs=$('sysLeg').children;
     gs.forEach(function(g){if(g.p!=null)gpu=(gpu||0)+g.p;gmax+=g.max||0});
     $('sysBar').classList.toggle('off',cpw==null&&gpu==null);
@@ -565,11 +590,37 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
     }
   }
 
+  /* ---------- NVLink ----------
+     链路数和每条链路速率来自 nvidia-smi nvlink -s / -p; 版本来自 -info。
+     卡片只有一行: 名称 / 拓扑 / 理论带宽与峰值。吞吐计数器的可用性是看平台的:
+     Windows 上不少驱动 (消费卡尤其) 对 -gt d 直接报 N/A, 这时拓扑照常显示,
+     峰值位置写"计数器不可用", 不拿 0 冒充。没有 NVLink 的机器宿主传 null, 整张卡片不出现。 */
+  var nvl=null;
+  function nvNum(v,d){return v==null?'--':v>=100?String(Math.round(v)):v.toFixed(d==null?1:d)}
+  function renderNvlink(){
+    var el=$('iNvl');
+    if(!nvl){el.hidden=true;return}
+    el.hidden=false;
+    $('nvName').textContent=nvl.label;
+    $('nvSpec').textContent=(nvl.gen?nvl.gen+' · ':'')+'×'+nvl.links+' · '+nvl.speed.toFixed(3)+' GB/s';
+    $('nvCap').textContent=nvNum(nvl.cap,2);
+    $('nvTail').textContent=nvl.peak==null?'计数器不可用':'峰值 '+nvNum(nvl.peak)+' GB/s';
+  }
+  /* 只有浏览器预览 (没接宿主) 才走这里; 实时模式的数是宿主给的 */
+  function stepNvlink(){
+    if(!nvl||nvl.tx==null)return;
+    nvl.tx=clamp(nvl.tx+(402-nvl.tx)*.1+(Math.random()-.5)*14,60,nvl.cap);
+    nvl.rx=clamp(nvl.rx+(358-nvl.rx)*.1+(Math.random()-.5)*14,60,nvl.cap);
+    nvl.util=Math.max(nvl.tx,nvl.rx)/nvl.cap*100;
+    nvl.peak=Math.max(nvl.peak||0,nvl.tx,nvl.rx);
+  }
+
   /* ---------- 宿主入口 ---------- */
-  window.pushSample=function(usage,temp,list,mem,dio,power,threads,disk){
+  window.pushSample=function(usage,temp,list,mem,dio,power,threads,disk,nv,up){
     if(!live){live=true;u=[];t=[];gs=[];mm=[];cpw=null;for(var k in io){io[k].h=[];io[k].last=null}}
     got=true;
     cpw=power==null?null:power;
+    upSec=up==null?null:up;
     if(disk&&disk.total)dcap=disk;
     if(threads&&threads.length){
       if(!thr||thr.length!==threads.length){thr=threads.slice();buildThreads(thr.length)}
@@ -585,18 +636,20 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
     });
     renderGpu();
     for(var k in io){var v=dio?dio[k]:null;io[k].last=v==null?null:v;push(io[k].h,v==null?0:v)}
+    nvl=nv||null;renderNvlink();
     renderIo();
   };
 
   if(live){
-    renderCpu();renderMem();renderGpu();renderIo();
+    renderCpu();renderMem();renderGpu();renderIo();renderNvlink();
   }else{
     gs=mock.map(function(m){return newGpu(m.name,m.total)});buildGpus();
     dcap={used:1430,total:2048,label:'NVMe SSD'};  // 模拟数据 (和画布一致)
     thr=[];for(var k=0;k<44;k++)thr.push(35);buildThreads(thr.length);
-    for(var i=0;i<N;i++){stepCpu();stepGpu();stepMem();stepIo()}
-    renderCpu();renderMem();renderGpu();renderIo();
-    setInterval(function(){if(!live){stepCpu();stepGpu();stepMem();stepIo();renderCpu();renderMem();renderGpu();renderIo()}},1000);
+    nvl={label:'GPU 0 ↔ GPU 1',gen:'NVLink 4.0',links:18,speed:25.781,cap:464.06,tx:402,rx:358,util:87,peak:412,probe:true};
+    for(var i=0;i<N;i++){stepCpu();stepGpu();stepMem();stepIo();stepNvlink()}
+    renderCpu();renderMem();renderGpu();renderIo();renderNvlink();
+    setInterval(function(){if(!live){stepCpu();stepGpu();stepMem();stepIo();stepNvlink();renderCpu();renderMem();renderGpu();renderIo();renderNvlink()}},1000);
   }
 })();
 </script>
@@ -679,7 +732,7 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
   var C='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>';
   function conf(el){
     if(el.id==='iDisk')return {t:'disk',title:'磁盘读写最高的 10 个进程',bg:'#1F5C52',chip:'DISK',cols:['读取','写入'],ids:['dR','dW'],unit:'MB/s'};
-    if(el.id==='iNet')return {t:'net',title:'网络流量最高的 10 个进程',bg:'#D9482B',chip:'NET',cols:['下载','上传'],ids:['nD','nU'],unit:'Mbps'};
+    if(el.id==='iNet')return {t:'net',title:'网络流量最高的 10 个进程',bg:'#D9482B',chip:'NET',cols:['下载','上传'],ids:['nD','nU'],unit:'MBps'};
     if(el.classList.contains('usage'))return {t:'cpu',title:'CPU 占用最高的 10 个进程',bg:'#1F5C52',chip:C+'CPU',col:'CPU'};
     if(el.classList.contains('temp'))return {t:'cpu',title:'CPU 占用最高的 10 个进程',bg:'#D9482B',chip:C+'CPU',col:'CPU'};
     if(el.classList.contains('mem'))return {t:'ram',title:'内存占用最高的 10 个进程',bg:'#1B2421',chip:G+'RAM',col:'内存'};
@@ -712,7 +765,8 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
   ' 线程':' threads','线程 ':'Thread ','线程':'Thread','张在线':'online','内存':'Memory','每秒刷新':'refreshed every second','进程':'processes'};
   var keys,map=new WeakMap(),amap=new WeakMap();
   Object.keys(X).forEach(function(k){D[k]=X[k]});
-  var X2={'温度 未检测到传感器 (需运行 LibreHardwareMonitor)':'Temp: no sensor detected (run LibreHardwareMonitor)','未检测到 NVIDIA 显卡':'No NVIDIA GPU detected','请确认已安装驱动且 nvidia-smi 可用':'Make sure the driver is installed and nvidia-smi works','等待数据':'Waiting for data','实时数据':'live data','暂无进程数据':'No process data','读取中…':'Loading…','磁盘容量:已用 ':'Disk capacity: used ',',剩余 ':', free ',',共 ':', total ','容量 ':'Cap. ','估算值':'Estimated'};
+  var X2={'温度 未检测到传感器 (需运行 LibreHardwareMonitor)':'Temp: no sensor detected (run LibreHardwareMonitor)','未检测到 NVIDIA 显卡':'No NVIDIA GPU detected','请确认已安装驱动且 nvidia-smi 可用':'Make sure the driver is installed and nvidia-smi works','等待数据':'Waiting for data','实时数据':'live data','暂无进程数据':'No process data','读取中…':'Loading…','磁盘容量:已用 ':'Disk capacity: used ',',剩余 ':', free ',',共 ':', total ','容量 ':'Cap. ','估算值':'Estimated',
+  '发送':'TX','接收':'RX','链路利用率':'Link util.','每链路':'Per link','计数器不可用':'counters unavailable','互联速率':'interconnect rate','理论 ':'Theo. ',' 链路':' links',' 对 GPU':' GPU pairs',' 张卡':' GPUs'};
   Object.keys(X2).forEach(function(k){D[k]=X2[k]});
   /* single-word bits that must not be matched inside longer phrases are covered by longest-first ordering */
   keys=Object.keys(D).sort(function(a,b){return b.length-a.length});
@@ -742,13 +796,11 @@ body{background:var(--paper);color:var(--ink);font-family:"IBM Plex Mono","Micro
   function set(lang){
     L.en=lang==='en';L.lang=lang;
     root.setAttribute('data-lang',lang);root.setAttribute('lang',L.en?'en':'zh-CN');
-    [].forEach.call(document.querySelectorAll('.lang button'),function(b){b.setAttribute('aria-pressed',b.dataset.l===lang?'true':'false')});
     try{localStorage.setItem('hwm-lang',lang)}catch(e){}
     all();
   }
-  [].forEach.call(document.querySelectorAll('.lang button'),function(b){
-    b.addEventListener('click',function(e){e.stopPropagation();set(b.dataset.l)});
-  });
+  /* 语言只从托盘右键菜单切换 (tray.py 调 window.setLang), 窗口里没有按钮 */
+  window.setLang=set;
   set(L.lang);
 })();
 </script>

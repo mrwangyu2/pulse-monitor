@@ -26,6 +26,7 @@ Pulse 把该看的整合到一屏：CPU、每张显卡、内存、磁盘、网�
 | GPU 的占用率 / 温度 / 功耗 | [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) 的 Web 服务（`localhost:8085`） |
 | GPU 的编号顺序、功耗上限 | `nvidia-smi`（随 NVIDIA 驱动安装） |
 | GPU 已用显存 | Windows 的 `GPU Adapter Memory` 计数器 |
+| NVLink 链路 / 吞吐 | `nvidia-smi nvlink`（`-s`/`-p` 读拓扑，`-gt d` 读收发计数器） |
 | CPU 温度 / 封装功耗 | LibreHardwareMonitor |
 | 网络前 10 进程排行 | ETW 内核日志（`pywintrace`） |
 
@@ -33,7 +34,9 @@ Pulse 把该看的整合到一屏：CPU、每张显卡、内存、磁盘、网�
   一份，没装也能跑，只是温度那几格空着（GPU 温度退回 `nvidia-smi` 报的值）。它是
   `requireAdministrator`，由 Pulse 拉起时必然弹一次 UAC。
 - **`nvidia-smi`**：随 NVIDIA 驱动装，不用单独准备。机器上没有 NVIDIA 显卡或驱动时，
-  GPU 面板就没有数据。
+  GPU 面板就没有数据。NVLink 卡片也靠它：链路数、每条链路的速率和版本来自 `nvlink -s` / `-p` / `-info`；
+  收发吞吐来自 `nvlink -gt d` 的计数器，**Windows 上不少驱动会直接报 N/A**（消费卡尤其）—— 这时照样
+  显示链路拓扑和理论带宽，峰值位置写「计数器不可用」，不拿 0 冒充。没有 NVLink 的卡（比如 RTX 4090）整张卡片不显示。
 - **管理员权限**：网络排行靠 ETW，非管理员启动时那一项是空的（托盘会提醒，菜单里可一键提权重启）。
 
 GPU 的数值和编号为什么来自两个来源、显存为什么又绕开它们，见 `pulse.py` 里 `_pair_gpus` 和
@@ -114,7 +117,7 @@ pictures/         README 用的界面截图
 界面完全由 `pulse.html` 决定，`pulse.py` 只负责每秒采样一次，然后调用页面里的
 
 ```js
-window.pushSample(usage, temp, gpus, mem, io, power, threads, disk)
+window.pushSample(usage, temp, gpus, mem, io, power, threads, disk, nvlink, uptime)
 ```
 
 `None` 表示该项暂无数据。**换设计 = 换 HTML 文件。**

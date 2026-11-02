@@ -1,7 +1,7 @@
 """Pulse 硬件监控: 用 pywebview 直接渲染 pulse.html, 显示 CPU 与 GPU 的使用率、温度。仅支持 Windows。
 
 界面完全由同目录的 pulse.html 决定; 本程序只负责每秒采样, 并调用页面里的
-window.pushSample(usage, temp, gpus, mem, io, power, threads, disk) 推送数据 (None 表示该项暂无数据)。换设计 = 换 HTML 文件。
+window.pushSample(usage, temp, gpus, mem, io, power, threads, disk, nvlink, uptime) 推送数据 (None 表示该项暂无数据)。换设计 = 换 HTML 文件。
 
 CPU 使用率: 调用 kernel32.GetSystemTimes, 两次采样之间的差值即为占用比例。
             每个逻辑核的使用率另走 psutil.cpu_times(percpu=True) 的差值 (页面上的线程竖条)。
@@ -18,8 +18,11 @@ GPU:        数值取 LHM: 每张卡的占用率、温度 (Temperatures\\GPU Cor
             已用显存单独走 Windows 的 GPU Adapter Memory 计数器: LHM 和 nvidia-smi 都看不到
             一张卡上那 20 GB (本机实测它们都只报 ~2 GB), 而计数器的值和任务管理器一致。
             没装 / 没在跑 LHM 时, GPU 面板整个退回 nvidia-smi (随 NVIDIA 驱动安装), 和以前一样。
+NVLink:     链路拓扑和实测吞吐都走 nvidia-smi nvlink: -s / -p 读"哪两张卡、几条、每条多少 GB/s",
+            -gt d 读收发计数器差值。Windows 上不少驱动对计数器直接报 N/A —— 那就只显示拓扑和
+            理论带宽, 实测值留空 (不能拿 0 冒充)。没有 NVLink 的卡, 页面上整张卡片不出现。
 内存:       kernel32.GlobalMemoryStatusEx 取物理内存已用/总量。
-磁盘/网络: psutil 的 IO 计数器差值 (MB/s, Mbps)。
+磁盘/网络: psutil 的 IO 计数器差值 (都按 MB/s; 网络也是字节, 不再 ×8 折成比特)。
 
 点击面板弹出"前10进程": 页面调用 window.pywebview.api.top(kind, gpu_index) 按需取数据;
 CPU/内存/磁盘用 psutil, GPU 进程显存与 CUDA 用 Windows 性能计数器 (GPU Process Memory / GPU Engine),
@@ -97,7 +100,7 @@ ADMIN = is_admin()
 # 标题栏里要显示的名字/邮箱。改这里就行, 不用动 HTML。
 # 标题其余部分 (CPU 型号、显卡、内存) 都是启动时从本机读的, 见 _live_title。
 APP_NAME = "Pulse"
-APP_VERSION = "v1.0.1"
+APP_VERSION = "v1.0.3"
 APP_AUTHOR = "wangyuxxx@gmail.com"
 
 
@@ -162,6 +165,18 @@ def read_memory():
         return None
     gb = 1024 ** 3
     return {"used": (st.total - st.avail) / gb, "total": st.total / gb}
+
+
+def read_uptime():
+    """本次开机到现在的秒数 (界面上"持续开机"); 读不到返回 None。
+
+    psutil.boot_time() 在 Windows 上就是 当前时间 - GetTickCount64, 秒级精度够用了。
+    """
+    try:
+        boot = psutil.boot_time()
+    except (OSError, AttributeError):
+        return None
+    return max(0, int(time.time() - boot)) if boot else None
 
 
 def _disk_label():
@@ -391,7 +406,10 @@ def _pair_gpus(rows, cards):
 
 
 class _Rates:
-    """磁盘读写 (MB/s) 与网络上下行 (Mbps): 两次采样之间的计数器差值。"""
+    """磁盘读写与网络上下行 (都是 MB/s): 两次采样之间的计数器差值。
+
+    计数器本身是字节, 这里不再 ×8 换成比特 —— 面板上网络和磁盘用同一个口径 (MBps)。
+    """
 
     def __init__(self):
         self.prev = None
@@ -407,7 +425,7 @@ class _Rates:
             return None
         dt = cur[4] - prev[4]
         rate = lambda i, k: max(0.0, (cur[i] - prev[i]) / dt * k)
-        return {"dr": rate(0, 1 / 1e6), "dw": rate(1, 1 / 1e6), "nd": rate(2, 8 / 1e6), "nu": rate(3, 8 / 1e6)}
+        return {"dr": rate(0, 1 / 1e6), "dw": rate(1, 1 / 1e6), "nd": rate(2, 1 / 1e6), "nu": rate(3, 1 / 1e6)}
 
 
 _rates = _Rates()
@@ -526,6 +544,193 @@ def read_gpus(tree=None):
         for g, u in zip(gpus, used):
             g["used"] = u
     return gpus
+
+
+# ---------------------------------------------------------------- NVLink 互联
+
+# nvidia-smi 的三个子命令各报一段, 靠 GPU 行和缩进的 Link 行分行
+_NVLINK_GPU = re.compile(r"^GPU (\d+):")
+_NVLINK_SPEED = re.compile(r"^\s+Link (\d+):\s*([\d.]+) GB/s")
+_NVLINK_REMOTE = re.compile(r"^\s+Link (\d+):\s*([\da-fA-F:.]+)\s*$")
+_NVLINK_TX = re.compile(r"^\s+Link (\d+):\s*Data Tx:\s*(\d+) KiB")
+_NVLINK_RX = re.compile(r"^\s+Link (\d+):\s*Data Rx:\s*(\d+) KiB")
+_NVLINK_VER = re.compile(r"^\s+Nvlink Version:\s*([\d.]+)")
+
+_nvlink_topo = None  # 链路拓扑 (基本不变, 缓存一分钟)
+_nvlink_topo_at = 0.0
+_nvlink_gen = ""  # 拓扑那一版的 NVLink 版本 ("NVLink 4.0"), 随拓扑一起刷新
+_nvlink_probe = None  # 驱动到底给不给吞吐计数器; None = 还没探过
+_nvlink_probe_at = 0.0
+_nvlink_prev = None  # 上一次的收发累计计数 (算差值用)
+_nvlink_peak = 0.0
+
+
+def _smi(*args):
+    """跑一次 nvidia-smi 子命令, 返回 stdout —— 没装驱动 / 不支持这个子命令时返回空串。"""
+    try:
+        proc = subprocess.run(
+            ["nvidia-smi", *args], capture_output=True, text=True, timeout=3,
+            creationflags=0x08000000,  # CREATE_NO_WINDOW, 避免 pythonw 下闪黑框
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return proc.stdout if proc.returncode == 0 else ""
+
+
+def _nvlink_topology():
+    """NVLink 链路: [{a, b, link, speed}], 一张卡都没有 NVLink 时返回 []。
+
+    nvidia-smi nvlink -s 只报速度和状态, 对端是哪张卡要看 -p (remote PCI bus id),
+    再把 bus id 按 --query-gpu 换回 index。同一条链路在两端各报一遍, 这里只留 a < b 的
+    那一半 —— 不然带宽和链路数都会翻倍。没启用 NVLink 的卡 (比如 4090) 一条都不报。
+    """
+    speeds, remotes = {}, {}
+    for args, target, pattern, cast in (
+        (("nvlink", "-s"), speeds, _NVLINK_SPEED, float),
+        (("nvlink", "-p"), remotes, _NVLINK_REMOTE, str),
+    ):
+        gpu = None
+        for line in _smi(*args).splitlines():
+            m = _NVLINK_GPU.match(line)
+            if m:
+                gpu = int(m.group(1))
+                continue
+            m = pattern.match(line)
+            if m and gpu is not None:
+                target[(gpu, int(m.group(1)))] = cast(m.group(2))
+    buses = {}
+    for line in _smi("--query-gpu=index,pci.bus_id", "--format=csv,noheader").splitlines():
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) == 2 and parts[0].isdigit():
+            buses[parts[1]] = int(parts[0])
+    links = []
+    for (a, link), speed in speeds.items():
+        b = buses.get(remotes.get((a, link), ""))
+        if b is None or a >= b:  # 认不出对端 / 另一半已经记过
+            continue
+        links.append({"a": a, "b": b, "link": link, "speed": speed})
+    return links
+
+
+def _nvlink_counters():
+    """每条链路的收发累计计数 (KiB): {(gpu, link): (tx, rx)}; 驱动不支持时返回 None。
+
+    Windows 上不少驱动 (`nvlink -gt d`) 直接报 N/A —— 那就只能显示拓扑和理论带宽,
+    实测吞吐留空, 不能拿 0 冒充 (和页面上"数据不可得"的处理一致)。
+    """
+    out, gpu = {}, None
+    for line in _smi("nvlink", "-gt", "d").splitlines():
+        m = _NVLINK_GPU.match(line)
+        if m:
+            gpu = int(m.group(1))
+            continue
+        if gpu is None:
+            continue
+        for pattern, slot in ((_NVLINK_TX, 0), (_NVLINK_RX, 1)):
+            m = pattern.match(line)
+            if m:
+                key = (gpu, int(m.group(1)))
+                pair = list(out.get(key, (0, 0)))
+                pair[slot] = int(m.group(2))
+                out[key] = tuple(pair)
+    return out or None
+
+
+def _nvlink_version():
+    """NVLink 版本 ("NVLink 4.0" 这样): nvidia-smi nvlink -info 里的 Nvlink Version。
+
+    读不到 (老驱动不支持 -info) 时返回空串, 调用方再用链路数兜底。
+    """
+    gpu = None
+    for line in _smi("nvlink", "-info").splitlines():
+        m = _NVLINK_GPU.match(line)
+        if m:
+            gpu = int(m.group(1))
+            continue
+        m = _NVLINK_VER.match(line)
+        if m and gpu is not None:
+            return "NVLink " + m.group(1)
+    return ""
+
+
+def _nvlink_gen(links):
+    """版本兜底: -info 拿不到时按每张卡挂的链路数猜 (P100=4, V100=6, A100=12, H100=18)。
+
+    认不出的拓扑 (比如两卡之间就 2 条链路的桥接方案) 返回空串, 那行只写链路数和速率。
+    """
+    return {18: "NVLink 4.0", 12: "NVLink 3.0", 6: "NVLink 2.0", 4: "NVLink 1.0"}.get(links, "")
+
+
+def read_nvlink():
+    """NVLink 互联: 链路数、单链路速率、理论带宽, 以及驱动支持时的实时收发吞吐。
+
+    没有 NVLink 时返回 None, 页面整张卡片都不显示。结构:
+      label   "GPU 0 ↔ GPU 1" (多对时写 "N 对 GPU · M 张卡")
+      gen     "NVLink 4.0" 之类的代数, 推不出来时为空串
+      links   链路数, speed 单链路 GB/s, cap 理论带宽 GB/s (单方向)
+      tx/rx   实时吞吐 GB/s, util 利用率 %, peak 启动以来峰值 GB/s
+      per     每条链路的利用率 %, 顺序和链路一致
+      probe   驱动是否提供吞吐计数器 (False 时上面这些实测值全是 None)
+    """
+    global _nvlink_topo, _nvlink_topo_at, _nvlink_probe, _nvlink_probe_at
+    global _nvlink_prev, _nvlink_peak, _nvlink_gen
+    now = time.monotonic()
+    if _nvlink_topo is None or now - _nvlink_topo_at > 60:
+        topo = _nvlink_topology()
+        if topo != _nvlink_topo:
+            _nvlink_peak = 0.0  # 链路变了, 旧峰值没有可比性
+        _nvlink_topo, _nvlink_topo_at = topo, now
+        _nvlink_gen = _nvlink_version()  # 版本跟着拓扑一起缓存, -info 也是起一个进程
+        _nvlink_prev = None  # 链路可能变了, 旧计数对不上
+    links = _nvlink_topo
+    if not links:
+        return None
+
+    # 计数器: 支持就一直读; 不支持则一分钟才探一次, 免得每秒白起一个进程
+    counters = None
+    if _nvlink_probe is not False or now - _nvlink_probe_at > 60:
+        counters = _nvlink_counters()
+        _nvlink_probe, _nvlink_probe_at = counters is not None, now
+    if counters is None:
+        _nvlink_prev = None
+
+    rates = {}
+    if counters is not None:
+        prev, _nvlink_prev = _nvlink_prev, (counters, now)
+        if prev is not None and now > prev[1]:
+            dt = now - prev[1]
+            for key, cur in counters.items():
+                before = prev[0].get(key)
+                if before is None:
+                    continue
+                rates[key] = tuple(max(0.0, (cur[i] - before[i]) * 1024 / dt / 1e9) for i in (0, 1))
+
+    per = [max(rates[(l["a"], l["link"])]) / l["speed"] * 100 if (l["a"], l["link"]) in rates else None for l in links]
+    cap = sum(l["speed"] for l in links)
+    tx = sum(rates[(l["a"], l["link"])][0] for l in links if (l["a"], l["link"]) in rates) if rates else None
+    rx = sum(rates[(l["a"], l["link"])][1] for l in links if (l["a"], l["link"]) in rates) if rates else None
+    if tx is not None:
+        _nvlink_peak = max(_nvlink_peak, tx, rx)
+    pairs = {(l["a"], l["b"]) for l in links}
+    gpus = {l["a"] for l in links} | {l["b"] for l in links}
+    if len(pairs) == 1:
+        a, b = next(iter(pairs))
+        label = f"GPU {a} ↔ GPU {b}"
+    else:
+        label = f"{len(pairs)} 对 GPU · {len(gpus)} 张卡"
+    return {
+        "label": label,
+        "gen": _nvlink_gen or _nvlink_gen(len(links)),
+        "links": len(links),
+        "speed": links[0]["speed"],
+        "cap": cap,
+        "tx": tx,
+        "rx": rx,
+        "util": (max(tx, rx) / cap * 100) if tx is not None else None,
+        "peak": _nvlink_peak if _nvlink_peak else None,
+        "per": per,
+        "probe": counters is not None,
+    }
 
 
 # ---------------------------------------------------------------- 进程排行 (点击面板时按需采集)
@@ -788,8 +993,8 @@ class _NetProcs:
                         t = totals.setdefault(pid, [0, 0])
                         t[0] += rx
                         t[1] += tx
-        mbps = 8 / 1e6 / span
-        return [{"name": self._name(pid), "pid": pid, "r": rx * mbps, "w": tx * mbps, "v": (rx + tx) * mbps}
+        mbs = 1 / 1e6 / span
+        return [{"name": self._name(pid), "pid": pid, "r": rx * mbs, "w": tx * mbs, "v": (rx + tx) * mbs}
                 for pid, (rx, tx) in totals.items() if rx or tx]
 
     def _name(self, pid):
@@ -879,12 +1084,14 @@ def _join(parts):
     return " · ".join(p for p in parts if p)
 
 
-def _live_title(template, cpu, gpus, mem):
+def _live_title(template, cpu, gpus, mem, lang="zh"):
     """标题栏: <程序名> <版本> · 作者 <邮箱> — <本机 CPU> · <显卡 ×N> · 内存 <GB> GB · 每秒采样 · 实时数据
 
     机型信息都是启动时从本机读的, 所以这里不是简单替换模板, 而是整条重建
     (模板只在读不到机型时兜底 —— 比如纯浏览器预览时看的还是画布里的占位值)。
+    语言跟页面一致: 托盘菜单切换后, 下一次采样就会重建标题 (窗口藏着也会).
     """
+    en = lang == "en"
     gpu_part = None
     if gpus:
         seen, counts = {}, {}
@@ -900,11 +1107,12 @@ def _live_title(template, cpu, gpus, mem):
                 name + (f" × {counts[key]}" if counts[key] > 1 else "")
                 for key, name in seen.items()
             )
-    mem_part = f"内存 {round(mem['total'])} GB" if mem and mem.get("total") else None
-    tail = ["每秒采样", "实时数据"]
+    mem_part = (f"{'Memory' if en else '内存'} {round(mem['total'])} GB"
+                if mem and mem.get("total") else None)
+    tail = ["sampled every second", "live data"] if en else ["每秒采样", "实时数据"]
     if not cpu and not gpu_part and not mem_part:
         return template  # 什么都读不到, 保留画布里的模板
-    brand = f"{APP_NAME} {APP_VERSION} · 作者 {APP_AUTHOR}"
+    brand = f"{APP_NAME} {APP_VERSION} · {'by' if en else '作者'} {APP_AUTHOR}"
     specs = _join([cpu, gpu_part, mem_part])
     # 作者和机型之间是破折号, 其余用间隔号 —— 跟画布一致
     return _join([f"{brand} — {specs}" if specs else brand, " · ".join(tail)])
@@ -912,6 +1120,7 @@ def _live_title(template, cpu, gpus, mem):
 
 def sample_loop(window, loaded, stop, tray):
     loaded.wait()
+    tray.sync_lang()  # 托盘菜单的语言勾选跟页面里上次的选择对齐 (页面自己已经按 localStorage 切好了)
     prev = _system_times()
     prev_thr = psutil.cpu_times(percpu=True)  # 每个逻辑核的使用率要两次采样才能算差值
     # 窗口尺寸由 create_window 的 min_size 钉住 (内容区 1052×802), 这里不再手动补偿
@@ -930,13 +1139,15 @@ def sample_loop(window, loaded, stop, tray):
         threads = _threads_between(prev_thr, cur_thr)
         disk = read_disk(disk_label)
         io = _rates.read()
+        nvl = read_nvlink()
+        uptime = read_uptime()
         prev, prev_thr = cur, cur_thr
         tray.update(usage, mem, gpus)  # 先更新 tooltip, 窗口藏着的时候也要刷新
-        args = ",".join(json.dumps(x) for x in (usage, temp, gpus, mem, io, power, threads, disk))
+        args = ",".join(json.dumps(x) for x in (usage, temp, gpus, mem, io, power, threads, disk, nvl, uptime))
         try:
             # 标题跟显隐无关: 窗口一露出来就该是完整标题, 不用等下一次采样。机型基本不变,
             # 所以 title != shown 几乎总是假, 这个 set_title 实际上只在开头调一两次。
-            title = _live_title(template, cpu_name, gpus, mem)
+            title = _live_title(template, cpu_name, gpus, mem, tray.lang)
             if title and title != shown:
                 window.set_title(title)
                 shown = title

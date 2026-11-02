@@ -9,6 +9,16 @@
 | `canvas-meta.json` | 画布 / frame / 评论的元数据 (id、尺寸、位置、更新时间) |
 | `diff-canvas-vs-local.txt` | 画布 HTML 与本地 `pulse.html` 的逐段差异 (两边各自独有什么) |
 
+## 后续导出 (同一 frame `cqRmTuFCPK`)
+
+| 文件 | 内容 |
+|---|---|
+| `pulse-canvas-frame-20261102.html` | 2026-11-02 10:20: 整机总功耗加「持续开机」行, NVLink 卡片三行头部 |
+| `pulse-canvas-frame-20261102b.html` | 2026-11-02 10:54: NVLink 压成 50px 一行摘要 (发送/接收/利用率/每链路移除) |
+
+两份都是 doop 序列化后的 HTML, 和本地 `pulse.html` 的差异主要是 DOM 序列化 (自闭合标签、
+属性引号) 与「设计稿模拟数据 / 程序实时数据」的分工, 不能直接覆盖本地文件。
+
 ## 恢复
 
 1. 在 doop 里新建画布和 frame (或 MCP `create_frame`)。
